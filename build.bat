@@ -1,2 +1,3 @@
 powershell .\gradlew :build
-pause
+move /y .\build\libs\moreCommands.jar .\
+rd /s /q .\build
