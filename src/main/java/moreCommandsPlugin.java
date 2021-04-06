@@ -270,7 +270,7 @@ public class moreCommandsPlugin extends Plugin {
         	return;
         });
         
-        handler.<Player>register("info-all", "<username|IP|ID...>", "List all information related to the given player", (arg, player) -> {
+        handler.<Player>register("info-all", "<username|ID>", "List all information related to the given player", (arg, player) -> {
             if (!player.admin()) {
                 player.sendMessage("[scarlet]This command is only for admins.");
                 return;
