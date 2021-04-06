@@ -1,0 +1,2 @@
+powershell .\gradlew :build
+pause
