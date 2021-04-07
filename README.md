@@ -1,4 +1,4 @@
-# TeamPlugin
+# moreCommands Plugin
 * `[]` = optional
 * `<>` = obligatory
 
