@@ -41,8 +41,7 @@ This plugin is a grouping of several other plugins, with modifications or upgrad
 
 J-VdS - [TeamPlugin](https://github.com/J-VdS/TeamPlugin)<br>
 Phinner - [BetterCommands](https://github.com/Phinner/BetterCommands)<br>
-L0615T1C5-216AC-9437 - [admin-tools](https://github.com/L0615T1C5-216AC-9437/admin-tools/blob/master/src/main/java/ad/Main.java)<br>
+L0615T1C5-216AC-9437 - [admin-tools](https://github.com/L0615T1C5-216AC-9437/admin-tools)<br>
 Shadow53 - [MindustryAdminPlugin](https://github.com/Shadow53/MindustryAdminPlugin)<br>
 Gee-aitcH - [GHMP-AdminChat](https://github.com/Gee-aitcH/GHMP-AdminChat)<br>
 Gee-aitcH - [GHMP-VoteNewWave](https://github.com/Gee-aitcH/GHMP-VoteNewWave)<br>
-f
