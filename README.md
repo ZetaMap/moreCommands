@@ -18,6 +18,8 @@
 * `/unban <ip|ID>` Unban a person.
 - [ ]  `/players [all|connect|ban]` Gives the list of players according to the type of filter given.
 - [ ]  `/info-all <username|ID>` List all information related to the given player.
+- [ ]  `/tp [<x> <y>|username] ` Teleport to a coordinate or a player.
+- [ ]  `/kill <username>` Kill a player.
 
 ### Feedback
 Open an issue if you have a suggestion.
@@ -33,3 +35,12 @@ You have just run `build.bat` and the plugin will compile automatically.
 
 Simply place the output jar from the step above in your server's `config/mods` directory and restart the server.
 List your currently installed plugins by running the `plugins` command.
+
+### Thanks to...
+This plugin is a grouping of several other plugins, with modifications or upgrades.
+J-VdS - [TeamPlugin](https://github.com/J-VdS/TeamPlugin)
+Phinner - [BetterCommands](https://github.com/Phinner/BetterCommands)
+L0615T1C5-216AC-9437 - [admin-tools](https://github.com/L0615T1C5-216AC-9437/admin-tools/blob/master/src/main/java/ad/Main.java)
+Shadow53 - [MindustryAdminPlugin](https://github.com/Shadow53/MindustryAdminPlugin)
+Gee-aitcH - [GHMP-AdminChat](https://github.com/Gee-aitcH/GHMP-AdminChat)
+Gee-aitcH - [GHMP-VoteNewWave](https://github.com/Gee-aitcH/GHMP-VoteNewWave)
