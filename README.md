@@ -6,7 +6,7 @@
 * `/ut` Tells you the name of the unit you are controlling.
 * `/vnw` (VoteNewWave) Vote for Sending a new Wave.
 * `/maps` List all maps on server.
-- [* ] `/info-all [username]` Get all the player information.
+- [v] `/info-all [username]` Get all the player information.
 
 ### Admin Only commands
 * `/team [teamname]` This command lets admins change teams.
