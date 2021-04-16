@@ -4,10 +4,14 @@ import static mindustry.Vars.state;
 import java.util.Arrays;
 import java.util.HashSet;
 
+import arc.Core;
 import arc.Events;
+import arc.math.Mathf;
 import arc.struct.ObjectMap;
 import arc.struct.ObjectSet;
+import arc.struct.Seq;
 import arc.util.CommandHandler;
+import arc.util.Strings;
 import arc.util.Timer;
 import mindustry.Vars;
 import mindustry.core.NetClient;
@@ -17,6 +21,7 @@ import mindustry.game.Team;
 import mindustry.gen.Call;
 import mindustry.gen.Groups;
 import mindustry.gen.Player;
+import mindustry.gen.Playerc;
 import mindustry.maps.Map;
 import mindustry.mod.Plugin;
 import mindustry.net.Administration;
@@ -27,8 +32,6 @@ import mindustry.world.Tile;
 
 public class moreCommandsPlugin extends Plugin {
     Timer.Task task;
-    private long TEAM_CD = 10000L;
-    private ObjectMap<Player, Long> teamTimers = new ObjectMap<>();
     private static double ratio = 0.6;
     private HashSet<String> votes = new HashSet<>();
     private Team spectateTeam = Team.all[8];
@@ -48,9 +51,6 @@ public class moreCommandsPlugin extends Plugin {
         Events.on(PlayerLeave.class, event -> {
             if(rememberSpectate.containsKey(event.player)){
                 rememberSpectate.remove(event.player);
-            }
-            if(teamTimers.containsKey(event.player)){
-                teamTimers.remove(event.player);
             }
         });
     }
@@ -124,7 +124,6 @@ public class moreCommandsPlugin extends Plugin {
                 Call.setPosition(player.con, ret.x, ret.y);
                 player.unit().set(ret.x, ret.y);
                 player.snapSync();
-                teamTimers.put(player, System.currentTimeMillis()+TEAM_CD);
                 Call.sendMessage(String.format("> [orange]%s []changed to team [sky]%s", player.name, ret.team));
             }else{
                 player.sendMessage("[scarlet]You can't change teams ...");
@@ -171,19 +170,42 @@ public class moreCommandsPlugin extends Plugin {
             state.wavetime = 0f;
             task.cancel();
 		});
-       
+
         handler.<Player>register("maps", "[page]", "List all maps on server", (arg, player) -> {
-            if (!Vars.maps.all().isEmpty()) {
-                player.sendMessage("------------------------------------------\n[gold]Maps:");
-                for (Map map : Vars.maps.all()) {
-                	player.sendMessage(map.name() + " - " + map.width + "x" + map.height);
-                }
+            int page;
+			if (!(arg.length == 0)) { 
+            	page = Strings.parseInt(arg[0]);
             } else {
-                info(player, "No maps found.");
+            	page = 1;
             }
+
+			int lines = 6;
+            int index = 0;
+            Seq<Map> list = Vars.maps.all();
+            int pages = Mathf.ceil(list.size / lines);
+            if (list.size % lines != 0) {pages++;}
+            index=(page-1)*lines;
+            
+            if (page > pages || page < 0) {
+            	player.sendMessage("[scarlet]'page' must be a number between[orange] 1[] and [orange]" + pages + "[scarlet].");
+            	return;
+            }
+            
+            player.sendMessage("\n[orange]---- [][gold]Maps list []" + page + "/" + pages + "[orange] ----");
+            for (int i=0; i<lines;i++) {
+            	try {
+            		player.sendMessage("[orange]  - []" + list.get(index).name() + "[][orange] | []" + list.get(index).width + "x" + list.get(index).height);
+            		index++;
+            	} catch (IndexOutOfBoundsException e) {
+            		player.sendMessage("[orange]-----------------------");
+            		return;
+            	}
+            }
+            player.sendMessage("[orange]-----------------------");
+            
         });
 
-        handler.<Player>register("kick", "<username...>", "Kick a person by name", (arg, player) -> {
+        handler.<Player>register("kick", "<username>", "Kick a person by name", (arg, player) -> {
             if (!player.admin()) {
                 player.sendMessage("[scarlet]This command is only for admins.");
                 return;
@@ -275,7 +297,7 @@ public class moreCommandsPlugin extends Plugin {
         });
         
         handler.<Player>register("info-all", "[username]", "Get all the player information", (arg, player) -> {
-        	ObjectSet<Administration.PlayerInfo> infos = null;
+        	ObjectSet<Administration.PlayerInfo> infos;
 
         	if (!player.admin()) {
             	 infos = netServer.admins.findByName(player.name);
@@ -298,17 +320,44 @@ public class moreCommandsPlugin extends Plugin {
                 			"\n- All IPs used: [accent]" + info.ips +
                 			"\n- Times joined: [green]" + info.timesJoined +
                 			"\n- Times kicked: [scarlet]" + info.timesKicked +
-                			"\n------------------------------------------");
+                			"\n[]------------------------------------------");
                 }
            } else player.sendMessage("[accent]This player doesn't exist!");
         });
-/**       
-        handler.<Player>register("tp", "???", "???", (arg, player) -> {
-        	  if (arg.length > 1) {
-                  if (arg.length == 2) player.sendMessage("[salmon]TP[white]: You need y coordinate.");
-                  if (arg.length < 3) return;
-                  String x2= arg[1].replaceAll("[^0-9]", "");
-                  String y2= arg[2].replaceAll("[^0-9]", "");
+/*        
+        handler.<Player>register("tp", "<name|<x>,<y>> [to_name|<x>,<y>]", "Teleport to position or player", (arg, player) -> {
+            if (!player.admin()) {
+                player.sendMessage("[scarlet]This command is only for admins.");
+                return;
+            }
+
+        	String arg1= arg[0].replaceAll("[^0-9]", "");
+        	
+        	if (arg.length == 1) {
+        		if (arg1.equals("")) {
+        		
+        		} else {
+        		
+        		}
+        		
+        	} else if (arg.length == 2 && arg1.equals("")) {
+        		if (arg[1] == toString()) {
+        		
+        		} else {
+        		
+        		}
+        	} else {
+        		player.sendMessage("[scarlet]Invalid usage:[] errorrrrrrrr.");
+                return;
+        	}
+
+        	
+        	
+        	  if (arg.length > 0) {
+                  if (arg.length == 1) player.sendMessage("[salmon]TP[white]: You need y coordinate.");
+                  if (arg.length < 2) return;
+                  String x2= arg[0].replaceAll("[^0-9]", "");
+                  String y2= arg[1].replaceAll("[^0-9]", "");
                   if (x2.equals("") || y2.equals("")) {
                       player.sendMessage("[salmon]TP[white]: Coordinates must contain numbers!");
                       return;
@@ -317,23 +366,45 @@ public class moreCommandsPlugin extends Plugin {
                   float x2f = Float.parseFloat(x2);
                   float y2f = Float.parseFloat(y2);
 
-                  if (x2f > World.width()) {
-                      player.sendMessage("[salmon]TP[white]: Your x coordinate is too large. Max: " + world.getMap().width);
+                  if (x2f > Vars.world.width()) {
+                      player.sendMessage("[salmon]TP[white]: Your x coordinate is too large. Max: " + Vars.world.width());
                       return;
                   }
-                  if (y2f > World.height()) {
-                      player.sendMessage("[salmon]TP[white]: y must be: 0 <= y <= " + world.getMap().height);
+                  if (y2f > Vars.world.height()) {
+                      player.sendMessage("[salmon]TP[white]: y must be: 0 <= y <= " + Vars.world.height());
                       return;
                   }
+              //    Core.app.post{}
+                
+                 
+                  Call.setPosition(player.con, x2f*8, y2f*8);
+                  player.unit().set(x2f*8, y2f*8);
+                  player.snapSync();
                   player.sendMessage("[salmon]TP[white]: Moved [lightgray]" + player.name + " [white]from ([lightgray]" + player.x / 8+ " [white], [lightgray]" + player.y / 8 + "[white]) to ([lightgray]" + x2 + " [white], [lightgray]" + y2 + "[white]).");
-                  player.set(Integer.parseInt(x2),Integer.parseInt(y2));
-                  player.set(8 * x2f,8 * y2f);
               } else {
                   player.sendMessage("[salmon]TP[white]: Teleports player to given coordinates");
               }
+        		
         });
-*/  
-  
+*/        
+        handler.<Player>register("kill", "[username]", "Kill a player", (arg, player) -> {
+            if (!player.admin()) {
+                player.sendMessage("[scarlet]This command is only for admins.");
+                return;
+            }
+            
+        	if (arg.length == 0) {
+                player.unit().kill();
+            } else {
+                Player other = Groups.player.find(p -> p.name().equalsIgnoreCase(arg[0]));
+                if (other != null) {
+                	other.unit().kill();
+                } else {
+                	player.sendMessage("[accent]This player doesn't exist!");
+                }
+            }
+        });
+    
     }
 
     //search a possible team
