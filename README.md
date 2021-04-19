@@ -5,11 +5,12 @@
 * `/vnw` (VoteNewWave) Vote for Sending a new Wave.
 * `/maps` List all maps on server.
 * `/info-all [username]` Get all the player information.
+* `/rtv` Rock the vote to change map.
 
 ### Admin Only Commands
 * `/team [teamname]` This command lets admins change teams.
 * `/spectate` Enter/leave spectate mode.
-* `/ac <message...>` Send a message in the admin chat.
+* `/am <message...>` Send a message as admin.
 * `/kick <username...>` Kick a person by name.
 * `/pardon <ID>` Pardon a votekicked player by ID and allow them to join again.
 * `/ban <type-id|name|ip> <username|IP|ID...>`  Ban a person.
