@@ -14,8 +14,8 @@
 * `/pardon <ID>` Pardon a votekicked player by ID and allow them to join again.
 * `/ban <type-id|name|ip> <username|IP|ID...>`  Ban a person.
 * `/unban <ip|ID>` Unban a person.
-- [x]  `/players [all|connect|ban]` Gives the list of players according to the type of filter given.
-- [ ]  `/tp <<x> <y>|username> ` Teleport to a coordinate or a player.
+- [x]  `/players [all|online|ban]` Gives the list of players according to the type of filter given.
+- [ ]  `/tp <name|x,y> [to_name|x,y]` Teleport to a coordinate or a player.
 - [x]  `/kill [username]` Kill a player.
 
 ### Server Commands
