@@ -8,7 +8,7 @@
 * `/maps` List all maps on server.
 - [x] `/info-all [username]` Get all the player information.
 
-### Admin Only commands
+### Admin Only Commands
 * `/team [teamname]` This command lets admins change teams.
 * `/spectate` Enter/leave spectate mode.
 * `/ac <message...>` Send a message in the admin chat.
@@ -19,6 +19,11 @@
 - [ ]  `/players [all|connect|ban]` Gives the list of players according to the type of filter given.
 - [ ]  `/tp <<x> <y>|username> ` Teleport to a coordinate or a player.
 - [x]  `/kill [username]` Kill a player.
+
+### Server Commands
+- [x] `unban-all [y|n]` Unban all ID and IP.
+- [ ] `auto-pause [on|off]` Pause the game if no one is connected.
+
 
 ### Feedback
 Open an issue if you have a suggestion.
