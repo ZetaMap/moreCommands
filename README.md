@@ -4,7 +4,7 @@
 * `/ut` Tells you the name of the unit you are controlling.
 * `/vnw` (VoteNewWave) Vote for Sending a new Wave.
 * `/maps` List all maps on server.
-- [x] `/info-all [username]` Get all the player information.
+* `/info-all [username]` Get all the player information.
 
 ### Admin Only Commands
 * `/team [teamname]` This command lets admins change teams.
@@ -14,12 +14,12 @@
 * `/pardon <ID>` Pardon a votekicked player by ID and allow them to join again.
 * `/ban <type-id|name|ip> <username|IP|ID...>`  Ban a person.
 * `/unban <ip|ID>` Unban a person.
-- [x]  `/players [all|online|ban]` Gives the list of players according to the type of filter given.
+* `/players [all|online|ban]` Gives the list of players according to the type of filter given.
+* `/kill [username]` Kill a player.
 - [ ]  `/tp <name|x,y> [to_name|x,y]` Teleport to a coordinate or a player.
-- [x]  `/kill [username]` Kill a player.
 
 ### Server Commands
-- [x] `unban-all [y|n]` Unban all ID and IP.
+* `unban-all [y|n]` Unban all ID and IP.
 - [ ] `auto-pause [on|off]` Pause the game if no one is connected.
 
 
