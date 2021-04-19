@@ -47,3 +47,4 @@ L0615T1C5-216AC-9437 - [admin-tools](https://github.com/L0615T1C5-216AC-9437/adm
 Shadow53 - [MindustryAdminPlugin](https://github.com/Shadow53/MindustryAdminPlugin)<br>
 Gee-aitcH - [GHMP-AdminChat](https://github.com/Gee-aitcH/GHMP-AdminChat)<br>
 Gee-aitcH - [GHMP-VoteNewWave](https://github.com/Gee-aitcH/GHMP-VoteNewWave)<br>
+mayli - [RockTheVotePlugin](https://github.com/mayli/RockTheVotePlugin)<br>
