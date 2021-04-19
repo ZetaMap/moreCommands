@@ -1,27 +1,28 @@
 import static mindustry.Vars.netServer;
 import static mindustry.Vars.state;
+import static mindustry.Vars.maps;
 
 import java.util.Arrays;
 import java.util.HashSet;
 
-import arc.Core;
 import arc.Events;
+import arc.func.Boolf;
 import arc.math.Mathf;
 import arc.struct.ObjectMap;
 import arc.struct.ObjectSet;
 import arc.struct.Seq;
 import arc.util.CommandHandler;
+import arc.util.Log;
 import arc.util.Strings;
 import arc.util.Timer;
 import mindustry.Vars;
 import mindustry.core.NetClient;
-import mindustry.core.World;
+import mindustry.core.NetServer;
 import mindustry.game.EventType.PlayerLeave;
 import mindustry.game.Team;
 import mindustry.gen.Call;
 import mindustry.gen.Groups;
 import mindustry.gen.Player;
-import mindustry.gen.Playerc;
 import mindustry.maps.Map;
 import mindustry.mod.Plugin;
 import mindustry.net.Administration;
@@ -29,44 +30,164 @@ import mindustry.net.Administration.PlayerInfo;
 import mindustry.net.Packets.KickReason;
 import mindustry.world.Tile;
 
-
 public class moreCommandsPlugin extends Plugin {
-    Timer.Task task;
-    private static double ratio = 0.6;
+	Timer.Task task;
     private HashSet<String> votes = new HashSet<>();
-    private Team spectateTeam = Team.all[8];
     private ObjectMap<Player, Team> rememberSpectate = new ObjectMap<>();
-    
-    private void sendMessage(Player player, String fmt, Object... tokens) {
-        player.sendMessage(String.format(fmt, tokens));
-    }
-    private void err(Player player, String fmt, Object... msg) {
-        sendMessage(player, "[scarlet]Error: " + fmt, msg);
-    }
-    private void info(Player player, String fmt, Object... msg) {
-        sendMessage(player, "Info: " + fmt, msg);
-    }
+    private static boolean confirm = false;
 
-    public void SpectateLeave(){
-        Events.on(PlayerLeave.class, event -> {
-            if(rememberSpectate.containsKey(event.player)){
-                rememberSpectate.remove(event.player);
-            }
+    
+    //register commands that run on the server
+    @Override
+    public void registerServerCommands(CommandHandler handler){
+    	handler.register("unban-all", "[y/n]", "Unban all IP and ID", arg -> {
+    		if (arg.length == 1 && confirm == false) {
+    			Log.err("Use first: 'unban-all', before confirming the command.");
+    			return;
+    		} else if (confirm == false) {
+    			Log.info("Are you sure to unban all all IP and ID ? (unban-all [y/n])");
+    			confirm = true;
+    			return;
+    		} else if (arg.length == 0 && confirm == true) {
+    			Log.info("Are you sure to unban all all IP and ID ? (unban-all [y/n])");
+    			confirm = true;
+    			return;
+    		}
+    		
+    		switch (arg[0]) {
+    			case "y":
+    				Administration pBanned = netServer.admins;
+    				pBanned.getBanned().each(unban -> pBanned.unbanPlayerID(unban.id));
+    				pBanned.getBannedIPs().each(ip -> pBanned.unbanPlayerIP(String.valueOf(ip)));
+
+    				Log.info("All all IP and ID have been unbanned!");
+    				confirm = false;
+    				break;
+    			case "n":
+    				Log.info("You canceled the confirmation...");
+    				confirm = false;
+    				break;
+    			default: 
+    				Log.err("Invalid arguments!");
+    				confirm = false;
+    		}
         });
     }
-
+    
     //register commands that player can invoke in-game
     @Override
     public void registerClientCommands(CommandHandler handler){
         handler.<Player>register("ut","unit type", (args, player) ->{
            player.sendMessage(player.unit().type().name);
         });
+        
+        handler.<Player>register("vnw", "(VoteNewWave) Vote for Sending a new Wave", (args, player) -> {
+        	double ratio = 0.6;
+        	
+        	if (this.votes.contains(player.uuid()) || this.votes.contains(netServer.admins.getInfo(player.uuid()).lastIP)) {
+                player.sendMessage("You have Voted already.");
+                return;
+        	}
 
+            this.votes.add(player.uuid());
+            int cur = this.votes.size();
+            int req = (int) Math.ceil(ratio * Groups.player.size());
+            Call.sendMessage("[orange]" + NetClient.colorizeName(player.id, player.name) + "[][lightgray] has voted for a new wave,[green]" + cur + "[] votes, [green]" + req + "[] required");
+ 
+            if (cur < req) return;
+
+            this.votes.clear();
+            Call.sendMessage("[green]Vote for Sending a New Wave is Passed. New Wave will be Spawned.");
+            state.wavetime = 0f;
+            task.cancel();
+		});
+
+        handler.<Player>register("maps", "[page]", "List all maps on server", (arg, player) -> {
+            int page;
+			if (!(arg.length == 0)) page = Strings.parseInt(arg[0]);
+            else page = 1;
+
+			int lines = 6;
+            int index;
+            Seq<Map> list = maps.all();
+            int pages = Mathf.ceil(list.size / lines);
+            if (list.size % lines != 0) pages++;
+            index=(page-1)*lines;
+            
+            if (page > pages || page < 1) {
+            	player.sendMessage("[scarlet]'page' must be a number between[orange] 1[] and [orange]" + pages + "[scarlet].");
+            	return;
+            }
+            
+            player.sendMessage("\n[orange]---- [][gold]Maps list [lightgray]" + page + "[white]/[lightgray]" + pages + "[orange] ----");
+            for (int i=0; i<lines;i++) {
+            	try {
+            		player.sendMessage("[orange]  - []" + list.get(index).name() + "[][orange] | []" + list.get(index).width + "x" + list.get(index).height);
+            		index++;
+            	} catch (IndexOutOfBoundsException e) {
+            		break;
+            	}
+            }
+            player.sendMessage("[orange]-----------------------");
+            
+        });
+
+        handler.<Player>register("info-all", "[username]", "Get all player information", (arg, player) -> {
+        	StringBuilder builder = new StringBuilder();
+        	ObjectSet<Administration.PlayerInfo> infos;
+        	int type;
+        	if (!player.admin()) {
+            	 infos = netServer.admins.findByName(player.name);
+            	 type = 0;
+            } else {
+            	 infos = netServer.admins.findByName(player.name);
+            	 type = 0;
+            	if(arg.length == 1) {
+            		infos = netServer.admins.findByName(arg[0]);
+            		type = 1;
+            	}
+            }
+        	
+            
+            if (infos.size > 0) {
+            	player.sendMessage("[gold]------------------------------------------");
+            	if (!(type == 0)) {
+                	player.sendMessage("[scarlet]-----"+
+                		"\n[white]Players found: [gold]" + infos.size +
+                		"\n[scarlet]-----");
+                }
+                int i = 1;
+                for (Administration.PlayerInfo info : infos) {
+                	if (type == 0) {
+                		if (i > 1) break;
+                		
+                		player.sendMessage("Player name [accent]'" + info.lastName + "[accent]'[white] / UUID [accent]'" + info.id + "' ");
+                	} else player.sendMessage("[gold][" + i + "] [white]Trace info for admin [accent]'" + info.lastName + "[accent]'[white] / UUID [accent]'" + info.id + "' ");
+                	builder.append("[]- All names used: [accent]" + info.names +
+                			"\n[]- IP: [accent]" + info.lastIP +
+                			"\n[]- All IPs used: [accent]" + info.ips +
+                			"\n[]- Is admin: [accent]" + info.admin +
+                			"\n[]- Times joined: [green]" + info.timesJoined);
+                	if (player.admin()) {
+                		builder.append("\n[]- Times kicked: [scarlet]" + info.timesKicked +
+                				"\n[]- Is baned: [accent]" + info.banned);
+                	}
+                	
+                	builder.append("\n[][gold]------------------------------------------");
+                	player.sendMessage(builder.toString());
+                	builder = new StringBuilder();
+                	i++;
+                	
+                }
+           } else player.sendMessage("[accent]This player doesn't exist!");
+        });
+      
         handler.<Player>register("team", "[teamname]","change team", (args, player) ->{
             if(!player.admin()){
                 player.sendMessage("[scarlet]Only admins can change team !");
                 return;
             }
+            
             if(rememberSpectate.containsKey(player)){
                 player.sendMessage(">[orange] transferring back to last team");
                 player.team(rememberSpectate.get(player));
@@ -78,7 +199,7 @@ public class moreCommandsPlugin extends Plugin {
             if(args.length == 1){
                 Team retTeam;
                 switch (args[0]) {
-                    case "sharded":
+                	case "sharded":
                         retTeam = Team.sharded;
                         break;
                     case "blue":
@@ -112,9 +233,7 @@ public class moreCommandsPlugin extends Plugin {
                     Tile coreTile = retTeam.core().tileOn();
                     ret =  new coreTeamReturn(retTeam, coreTile.drawx(), coreTile.drawy());
                 }
-            }else{
-                ret = getPosTeamLoc(player);
-            }
+            }else ret = getPosTeamLoc(player);
 
             //move team mechanic
             if(ret != null) {
@@ -125,16 +244,14 @@ public class moreCommandsPlugin extends Plugin {
                 player.unit().set(ret.x, ret.y);
                 player.snapSync();
                 Call.sendMessage(String.format("> [orange]%s []changed to team [sky]%s", player.name, ret.team));
-            }else{
-                player.sendMessage("[scarlet]You can't change teams ...");
-            }
+            }else player.sendMessage("[scarlet]You can't change teams ...");
         });
 
         handler.<Player>register("spectate", "[scarlet]Admin only[]", (args, player) -> {
-            if(!player.admin()){
-               player.sendMessage("[scarlet]This command is only for admins.");
-               return;
-            }
+        	if (!adminVerif(player)) return;
+        	
+        	Team spectateTeam = Team.all[8];
+            
             if(rememberSpectate.containsKey(player)){
                 player.team(rememberSpectate.get(player));
                 Call.setPlayerTeamEditor(player, rememberSpectate.get(player));
@@ -149,264 +266,159 @@ public class moreCommandsPlugin extends Plugin {
                 player.sendMessage("use /team or /spectate to go back to player mode");
             }
         });
-
-        handler.<Player>register("vnw", "(VoteNewWave) Vote for Sending a new Wave", (args, player) -> {
-        	if (this.votes.contains(player.uuid()) || this.votes.contains(netServer.admins.getInfo(player.uuid()).lastIP)) {
-                player.sendMessage("You have Voted already.");
-                return;
-        	}
-
-            this.votes.add(player.uuid());
-            int cur = this.votes.size();
-            int req = (int) Math.ceil(ratio * Groups.player.size());
-            Call.sendMessage("[orange]" + NetClient.colorizeName(player.id, player.name) + "[][lightgray] has voted for a new wave,[green]" + cur + "[] votes, [green]" + req + "[] required");
- 
-            if (cur < req) {
-                return;
-            }
-
-            this.votes.clear();
-            Call.sendMessage("[green]Vote for Sending a New Wave is Passed. New Wave will be Spawned.");
-            state.wavetime = 0f;
-            task.cancel();
-		});
-
-        handler.<Player>register("maps", "[page]", "List all maps on server", (arg, player) -> {
-            int page;
-			if (!(arg.length == 0)) { 
-            	page = Strings.parseInt(arg[0]);
-            } else {
-            	page = 1;
-            }
-
-			int lines = 6;
-            int index = 0;
-            Seq<Map> list = Vars.maps.all();
-            int pages = Mathf.ceil(list.size / lines);
-            if (list.size % lines != 0) {pages++;}
-            index=(page-1)*lines;
-            
-            if (page > pages || page < 0) {
-            	player.sendMessage("[scarlet]'page' must be a number between[orange] 1[] and [orange]" + pages + "[scarlet].");
-            	return;
-            }
-            
-            player.sendMessage("\n[orange]---- [][gold]Maps list []" + page + "/" + pages + "[orange] ----");
-            for (int i=0; i<lines;i++) {
-            	try {
-            		player.sendMessage("[orange]  - []" + list.get(index).name() + "[][orange] | []" + list.get(index).width + "x" + list.get(index).height);
-            		index++;
-            	} catch (IndexOutOfBoundsException e) {
-            		player.sendMessage("[orange]-----------------------");
-            		return;
-            	}
-            }
-            player.sendMessage("[orange]-----------------------");
-            
+        
+        handler.<Player>register("ac", "<message...>", "Admin Chat", (arg, player) -> {
+        	if (!adminVerif(player)) return;
+        	Groups.player.each(p -> p.admin, o -> o.sendMessage(arg[0], player, "[scarlet]<Admin>" + NetClient.colorizeName(player.id, player.name)));
         });
-
+        
         handler.<Player>register("kick", "<username>", "Kick a person by name", (arg, player) -> {
-            if (!player.admin()) {
-                player.sendMessage("[scarlet]This command is only for admins.");
-                return;
-            }
+            if (!adminVerif(player)) return;
 
             Player target = Groups.player.find(p -> p.name().equals(arg[0]));
             if (target != null) {
                 Call.sendMessage("[scarlet]" + target.name() + "[scarlet] has been kicked by the server.");
                 target.kick(KickReason.kick);
                 info(player, "It is done.");
-            } else {
-                info(player, "Nobody with that name could be found...");
-            }
+            } else info(player, "Nobody with that name could be found...");
+        });
+        
+        handler.<Player>register("pardon", "<ID>", "Pardon a player by ID and allow them to join again", (arg, player) -> {
+        	if (!adminVerif(player)) return;
+        	
+        	PlayerInfo info = netServer.admins.getInfoOptional(arg[0]);
+        	
+        	if (info != null) {
+        		info.lastKicked = 0;
+        		info(player, "Pardoned player: [accent]%s", info.lastName);
+        	} else err(player, "That ID can't be found.");
         });
         
         handler.<Player>register("ban", "<type-id|name|ip> <username|IP|ID...>", "Ban a person", (arg, player) -> {
-            if (!player.admin()) {
-                player.sendMessage("[scarlet]This command is only for admins.");
-                return;
-            }
+        	if (!adminVerif(player)) return;
 
             if (arg[0].equals("id")) {
-                Vars.netServer.admins.banPlayerID(arg[1]);
+                netServer.admins.banPlayerID(arg[1]);
                 info(player, "Banned.");
             } else if (arg[0].equals("name")) {
                 Player target = Groups.player.find(p -> p.name().equalsIgnoreCase(arg[1]));
                 if (target != null) {
-                    Vars.netServer.admins.banPlayer(target.uuid());
+                    netServer.admins.banPlayer(target.uuid());
                     info(player, "Banned.");
-                } else {
-                    err(player, "No matches found.");
-                }
+                } else err(player, "No matches found.");
             } else if (arg[0].equals("ip")) {
-                Vars.netServer.admins.banPlayerIP(arg[1]);
+                netServer.admins.banPlayerIP(arg[1]);
                 info(player, "Banned.");
-            } else {
-                err(player, "Invalid type.");
-            }
+            } else err(player, "Invalid type.");
 
+            
             for (Player gPlayer : Groups.player) {
-                if (Vars.netServer.admins.isIDBanned(gPlayer.uuid())) {
+                if (netServer.admins.isIDBanned(gPlayer.uuid())) {
                     Call.sendMessage("[scarlet]" + gPlayer.name + " has been banned.");
                     gPlayer.con.kick(KickReason.banned);
                 }
             }
         });
         
-        handler.<Player>register("pardon", "<ID>", "Pardon a player by ID and allow them to join again", (arg, player) -> {
-        	if (!player.admin()) {
-        		player.sendMessage("[scarlet]This command is only for admins.");
-        		return;
-        		}
-
-        	PlayerInfo info = Vars.netServer.admins.getInfoOptional(arg[0]);
-        	
-        	if (info != null) {
-        		info.lastKicked = 0;
-        		info(player, "Pardoned player: @", info.lastName);
-        		} else {
-        			err(player, "That ID can't be found.");
-        		}
-        });
-        
         handler.<Player>register("unban", "<ip|ID>", "Unban a person", (arg, player) -> {
-            if (!player.admin()) {
-                player.sendMessage("[scarlet]This command is only for admins.");
-                return;
-            }
+        	if (!adminVerif(player)) return;
 
-            if (Vars.netServer.admins.unbanPlayerIP(arg[0]) || Vars.netServer.admins.unbanPlayerID(arg[0])) {
-                info(player, "Unbanned player: @", arg[0]);
-            } else {
-                err(player, "That IP/ID is not banned!");
-            }
+            if (netServer.admins.unbanPlayerIP(arg[0]) || netServer.admins.unbanPlayerID(arg[0])) info(player, "Unbanned player: [accent]%s", arg[0]);
+            else err(player, "That IP/ID is not banned!");
         });
 
-        handler.<Player>register("ac", "<message...>", "Admin Chat", (arg, player) -> {
-            if(player.admin()) Groups.player.each(p -> p.admin, o -> o.sendMessage(arg[0], player, "[red]<Admin>" + NetClient.colorizeName(player.id, player.name)));
-        });
-        
-        handler.<Player>register("players", "[all|connect|ban]", "Gives the list of players according to the type of filter given", (arg, player) -> {
-            if (!player.admin()) {
-                player.sendMessage("[scarlet]This command is only for admins.");
-                return;
-            }
-//#################################################################################
-            player.sendMessage("This commands isn't implement!");
-        	return;
-        });
-        
-        handler.<Player>register("info-all", "[username]", "Get all the player information", (arg, player) -> {
-        	ObjectSet<Administration.PlayerInfo> infos;
-
-        	if (!player.admin()) {
-            	 infos = netServer.admins.findByName(player.name);
-            } else {
-            	 infos = netServer.admins.findByName(player.name);
-            	if(arg.length == 1) {
-            		infos = netServer.admins.findByName(arg[0]);
-            	}
+        handler.<Player>register("players", "<all|online|ban>", "Gives the list of players according to the type of filter given", (arg, player) -> {
+        	if (!adminVerif(player)) return;
+        	StringBuilder builder = new StringBuilder();
+        	Seq<PlayerInfo> bannedPlayers = netServer.admins.getBanned();
+        	
+            switch (arg[0]) {
+            	case "ban":
+            		builder.append("\nTotal banned players : [green]").append(netServer.admins.getBanned().size).append("[].\n[gold]--------------------------------[]").append("\n[accent]Banned Players:");
+            		player.sendMessage(builder.toString());
+            		bannedPlayers.each(p -> {
+            			player.sendMessage("[white]======================================================================\n" +
+            					"[lightgray]" + p.id +"[white] / Name: [lightgray]" + p.lastName + "[white]\n" +
+            					" / IP: [lightgray]" + p.lastIP + "[white] / # kick: [lightgray]" + p.timesKicked);
+            		});
+            		break;
+            
+            	case "online":
+            		builder.append("\nTotal online players: [green]").append(Groups.player.size()).append("[].\n[gold]--------------------------------[]").append("\n[accent]List of players: \n");
+            		for (Player p : Groups.player) {
+            			if (!p.admin) {
+            				p.name = p.name.replaceAll("\\[", "[[");
+            				builder.append("[white]");
+            			}
+            			if (p.admin) builder.append("[white]\uE828 ");
+            			builder.append(" - [lightgray]").append(p.name).append("[]: [accent]'").append(p.uuid()).append("'[]");
+            			if (p.admin) builder.append("[white] | [scarlet]Admin[]");
+            			builder.append("\n[accent]");
+            		}
+            		player.sendMessage(builder.toString());
+            		break;
+            	
+            	case "all":
+            		Seq<PlayerInfo> all = netServer.admins.getWhitelisted();
+            		builder.append("\nTotal players: [green]").append(all.size).append("[].\n[gold]--------------------------------[]").append("\n[accent]List of players: []\n");
+            		for (PlayerInfo p : all) {
+            			builder.append("[white] - [lightgray]Names: [accent]").append(p.names).append("[white] - [lightgray]ID: [accent]'").append(p.id).append("'");
+            			if (p.admin) builder.append("[white] | [scarlet]Admin");
+            			if (p.banned) builder.append("[white] | [orange]Banned");
+            			for (Player pID: Groups.player) {
+            				if (pID.ip() == p.lastIP) {
+            					builder.append("[white] | [green]Online");
+            					break;
+            				}
+            			}
+            			builder.append("\n");
+            		}
+            		player.sendMessage(builder.toString());
+            		break;
+            	
+            	default:
+            		player.sendMessage("[scarlet]Invalid usage:[lightgray] Invalid arguments.");
             }
             
-            if (infos.size > 0) {
-            	int i = 1;
-                player.sendMessage("------------------------------------------"+
-                		"\n[gold]Players found: [white]" + infos.size);
-
-                for (Administration.PlayerInfo info : infos) {
-                	player.sendMessage("[gold][" + i++ + "] [white]Trace info for admin [accent]'" + info.lastName + "[accent]'[white] / UUID [accent]'" + info.id + "'" +
-                			"\n- All names used: [accent]" + info.names +
-                			"\n- IP: [accent]" + info.lastIP +
-                			"\n- All IPs used: [accent]" + info.ips +
-                			"\n- Times joined: [green]" + info.timesJoined +
-                			"\n- Times kicked: [scarlet]" + info.timesKicked +
-                			"\n[]------------------------------------------");
-                }
-           } else player.sendMessage("[accent]This player doesn't exist!");
         });
-/*        
-        handler.<Player>register("tp", "<name|<x>,<y>> [to_name|<x>,<y>]", "Teleport to position or player", (arg, player) -> {
-            if (!player.admin()) {
-                player.sendMessage("[scarlet]This command is only for admins.");
-                return;
-            }
-
-        	String arg1= arg[0].replaceAll("[^0-9]", "");
-        	
-        	if (arg.length == 1) {
-        		if (arg1.equals("")) {
-        		
-        		} else {
-        		
-        		}
-        		
-        	} else if (arg.length == 2 && arg1.equals("")) {
-        		if (arg[1] == toString()) {
-        		
-        		} else {
-        		
-        		}
-        	} else {
-        		player.sendMessage("[scarlet]Invalid usage:[] errorrrrrrrr.");
-                return;
-        	}
-
-        	
-        	
-        	  if (arg.length > 0) {
-                  if (arg.length == 1) player.sendMessage("[salmon]TP[white]: You need y coordinate.");
-                  if (arg.length < 2) return;
-                  String x2= arg[0].replaceAll("[^0-9]", "");
-                  String y2= arg[1].replaceAll("[^0-9]", "");
-                  if (x2.equals("") || y2.equals("")) {
-                      player.sendMessage("[salmon]TP[white]: Coordinates must contain numbers!");
-                      return;
-                  }
-
-                  float x2f = Float.parseFloat(x2);
-                  float y2f = Float.parseFloat(y2);
-
-                  if (x2f > Vars.world.width()) {
-                      player.sendMessage("[salmon]TP[white]: Your x coordinate is too large. Max: " + Vars.world.width());
-                      return;
-                  }
-                  if (y2f > Vars.world.height()) {
-                      player.sendMessage("[salmon]TP[white]: y must be: 0 <= y <= " + Vars.world.height());
-                      return;
-                  }
-              //    Core.app.post{}
-                
-                 
-                  Call.setPosition(player.con, x2f*8, y2f*8);
-                  player.unit().set(x2f*8, y2f*8);
-                  player.snapSync();
-                  player.sendMessage("[salmon]TP[white]: Moved [lightgray]" + player.name + " [white]from ([lightgray]" + player.x / 8+ " [white], [lightgray]" + player.y / 8 + "[white]) to ([lightgray]" + x2 + " [white], [lightgray]" + y2 + "[white]).");
-              } else {
-                  player.sendMessage("[salmon]TP[white]: Teleports player to given coordinates");
-              }
-        		
-        });
-*/        
+             
         handler.<Player>register("kill", "[username]", "Kill a player", (arg, player) -> {
-            if (!player.admin()) {
-                player.sendMessage("[scarlet]This command is only for admins.");
-                return;
-            }
+        	if (!adminVerif(player)) return;
             
-        	if (arg.length == 0) {
-                player.unit().kill();
-            } else {
+        	if (arg.length == 0) player.unit().kill();
+            else {
                 Player other = Groups.player.find(p -> p.name().equalsIgnoreCase(arg[0]));
-                if (other != null) {
-                	other.unit().kill();
-                } else {
-                	player.sendMessage("[accent]This player doesn't exist!");
-                }
+                if (other != null) other.unit().kill();
+                else player.sendMessage("[accent]This player doesn't exist!");
             }
         });
     
     }
 
+    private void sendMessage(Player player, String fmt, Object... tokens) {
+        player.sendMessage(String.format(fmt, tokens));
+    }
+    private void err(Player player, String fmt, Object... msg) {
+        sendMessage(player, "[scarlet]Error: " + fmt, msg);
+    }
+    private void info(Player player, String fmt, Object... msg) {
+        sendMessage(player, "Info: " + fmt, msg);
+    }
+    private boolean adminVerif(Player player) {
+    	if(!player.admin()){
+    		player.sendMessage("[scarlet]This command is only for admins.");
+            return false;
+    	} else return true;
+    }
+    
+    //leave spectate mode
+    public void SpectateLeave(){
+        Events.on(PlayerLeave.class, event -> {
+            if(rememberSpectate.containsKey(event.player)){
+                rememberSpectate.remove(event.player);
+            }
+        });
+    }
     //search a possible team
     private Team getPosTeam(Player p){
         Team currentTeam = p.team();
