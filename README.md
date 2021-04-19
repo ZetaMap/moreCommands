@@ -1,8 +1,6 @@
 # moreCommands Plugin
-* `[]` = optional
-* `<>` = obligatory
 
-### All players Commands
+## All players Commands
 * `/ut` Tells you the name of the unit you are controlling.
 * `/vnw` (VoteNewWave) Vote for Sending a new Wave.
 * `/maps` List all maps on server.
@@ -16,7 +14,7 @@
 * `/pardon <ID>` Pardon a votekicked player by ID and allow them to join again.
 * `/ban <type-id|name|ip> <username|IP|ID...>`  Ban a person.
 * `/unban <ip|ID>` Unban a person.
-- [ ]  `/players [all|connect|ban]` Gives the list of players according to the type of filter given.
+- [x]  `/players [all|connect|ban]` Gives the list of players according to the type of filter given.
 - [ ]  `/tp <<x> <y>|username> ` Teleport to a coordinate or a player.
 - [x]  `/kill [username]` Kill a player.
 
