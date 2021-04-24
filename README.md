@@ -6,6 +6,7 @@
 * `/maps` List all maps on server.
 * `/info-all [username]` Get all the player information.
 * `/rtv` Rock the vote to change map.
+- [ ] `/rainbow` Give your username a rainbow animation.
 
 ### Admin Only Commands
 * `/team [teamname]` This command lets admins change teams.
