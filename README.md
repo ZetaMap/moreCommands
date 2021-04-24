@@ -17,7 +17,7 @@
 * `/unban <ip|ID>` Unban a person.
 * `/players [all|online|ban]` Gives the list of players according to the type of filter given.
 * `/kill [username]` Kill a player.
-- [ ]  `/tp <name|x,y> [to_name|x,y]` Teleport to a coordinate or a player.
+- [x]  `/tp <name|x,y> [to_name|x,y]` Teleport to a coordinate or a player.
 
 ### Server Commands
 * `unban-all [y|n]` Unban all ID and IP.
