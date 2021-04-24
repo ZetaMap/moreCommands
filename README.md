@@ -21,7 +21,7 @@
 
 ### Server Commands
 * `unban-all [y|n]` Unban all ID and IP.
-- [ ] `auto-pause [on|off]` Pause the game if no one is connected.
+- [x] `auto-pause [on|off]` Pause the game if no one is connected.
 
 
 ### Feedback
@@ -46,6 +46,6 @@ J-VdS - [TeamPlugin](https://github.com/J-VdS/TeamPlugin)<br>
 Phinner - [BetterCommands](https://github.com/Phinner/BetterCommands)<br>
 L0615T1C5-216AC-9437 - [admin-tools](https://github.com/L0615T1C5-216AC-9437/admin-tools)<br>
 Shadow53 - [MindustryAdminPlugin](https://github.com/Shadow53/MindustryAdminPlugin)<br>
-Gee-aitcH - [GHMP-AdminChat](https://github.com/Gee-aitcH/GHMP-AdminChat)<br>
 Gee-aitcH - [GHMP-VoteNewWave](https://github.com/Gee-aitcH/GHMP-VoteNewWave)<br>
 mayli - [RockTheVotePlugin](https://github.com/mayli/RockTheVotePlugin)<br>
+nichrosia - [autopause-plugin](https://github.com/nichrosia/autopause-plugin)<br>
