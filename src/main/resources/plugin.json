@@ -1,7 +1,7 @@
 {
   "name": "moreCommands",
-  "author": "Susideur (map)",
+  "author": "Susideur_YT (map)",
   "main": "moreCommandsPlugin",
   "description": "More commands for players and admins",
-  "version": 0.1
+  "version": 4.2
 }
