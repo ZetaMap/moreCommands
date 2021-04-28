@@ -19,6 +19,7 @@
 * `/players [all|online|ban]` Gives the list of players according to the type of filter given.
 * `/kill [username]` Kill a player.
 * `/tp <name|x,y> [to_name|x,y]` Teleport to a coordinate or a player.
+- [ ] `/tchat <on|off>` Enabled/disabled the tchat.
 
 ### Server Commands
 * `unban-all [y|n]` Unban all ID and IP.
