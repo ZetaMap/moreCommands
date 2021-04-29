@@ -4,7 +4,7 @@
 * `/ut` Tells you the name of the unit you are controlling.
 * `/vnw` (VoteNewWave) Vote for Sending a new Wave.
 * `/maps` List all maps on server.
-* `/info-all [username]` Get all the player information.
+* `/info-all [ID|username...]` Get all the player information.
 * `/rtv` Rock the vote to change map.
 * `/rainbow` Give your username a rainbow animation.
 
@@ -12,12 +12,12 @@
 * `/team [teamname]` This command lets admins change teams.
 * `/spectate` Enter/leave spectate mode.
 * `/am <message...>` Send a message as admin.
-* `/kick <username...>` Kick a person by name.
+* `/kick <ID|username...>` Kick a person by name or ID.
 * `/pardon <ID>` Pardon a votekicked player by ID and allow them to join again.
 * `/ban <type-id|name|ip> <username|IP|ID...>`  Ban a person.
 * `/unban <ip|ID>` Unban a person.
-* `/players [all|online|ban]` Gives the list of players according to the type of filter given.
-* `/kill [username]` Kill a player.
+* `/players <all|online|ban>` Gives the list of players according to the type of filter given.
+* `/kill [username...]` Kill a player.
 * `/tp <name|x,y> [to_name|x,y]` Teleport to a coordinate or a player.
 * `/core <small|medium|big>` Spawn a core to your corrdinate.
 - [ ] `/tchat <on|off>` Enabled/disabled the tchat.
