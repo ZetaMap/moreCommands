@@ -7,6 +7,7 @@
 * `/info-all [ID|username...]` Get all the player information.
 * `/rtv` Rock the vote to change map.
 * `/rainbow` Give your username a rainbow animation.
+- [ ] `/dm <username> <message...>` Send a message to a player.
 
 ### Admin Only Commands
 * `/team [teamname]` This command lets admins change teams.
