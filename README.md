@@ -25,7 +25,7 @@
 ### Server Commands
 * `unban-all [y|n]` Unban all ID and IP.
 * `auto-pause [on|off]` Pause the game if no one is connected.
-
+- [ ] `/tchat <on|off>` Enabled/disabled the tchat.
 
 ### Feedback
 Open an issue if you have a suggestion.
