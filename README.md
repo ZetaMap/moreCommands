@@ -20,6 +20,7 @@
 * `/kill [username]` Kill a player.
 * `/tp <name|x,y> [to_name|x,y]` Teleport to a coordinate or a player.
 - [ ] `/tchat <on|off>` Enabled/disabled the tchat.
+- [x] `/core <small|medium|big>` Spawn a core to your corrdinate.
 
 ### Server Commands
 * `unban-all [y|n]` Unban all ID and IP.
