@@ -6,7 +6,7 @@
 * `/maps` List all maps on server.
 * `/info-all [username]` Get all the player information.
 * `/rtv` Rock the vote to change map.
-- [x] `/rainbow` Give your username a rainbow animation.
+* `/rainbow` Give your username a rainbow animation.
 
 ### Admin Only Commands
 * `/team [teamname]` This command lets admins change teams.
@@ -19,13 +19,14 @@
 * `/players [all|online|ban]` Gives the list of players according to the type of filter given.
 * `/kill [username]` Kill a player.
 * `/tp <name|x,y> [to_name|x,y]` Teleport to a coordinate or a player.
+* `/core <small|medium|big>` Spawn a core to your corrdinate.
 - [ ] `/tchat <on|off>` Enabled/disabled the tchat.
-- [x] `/core <small|medium|big>` Spawn a core to your corrdinate.
 
 ### Server Commands
 * `unban-all [y|n]` Unban all ID and IP.
 * `auto-pause [on|off]` Pause the game if no one is connected.
 - [ ] `/tchat <on|off>` Enabled/disabled the tchat.
+
 
 ### Feedback
 Open an issue if you have a suggestion.
