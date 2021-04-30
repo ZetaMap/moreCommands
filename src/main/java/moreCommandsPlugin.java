@@ -38,6 +38,7 @@ import mindustry.net.Packets.KickReason;
 import mindustry.world.Block;
 import mindustry.world.Tile;
 
+
 public class moreCommandsPlugin extends Plugin {
 	Timer.Task task;
 	private double ratio = 0.6;
@@ -57,7 +58,7 @@ public class moreCommandsPlugin extends Plugin {
         Events.on(PlayerJoin.class, e -> {
         	if (Groups.player.size() >= 1 && autoPause) {
         		state.serverPaused = false;
-        		Log.info("auto-pause: " + Groups.player.size() + " player(s) connected -> Game unpaused ...");
+        		Log.info("auto-pause: " + Groups.player.size() + " player(s) connected -> Game unpaused...");
         	}
         	
         	tempPlayerDatas.put(e.player.uuid(), new TempPlayerData(0, e.player.name));
@@ -66,7 +67,7 @@ public class moreCommandsPlugin extends Plugin {
         Events.on(PlayerLeave.class, e -> {
         	if (Groups.player.size()-1 < 1 && autoPause) {
         		state.serverPaused = true;
-        		Log.info("auto-pause: " + (Groups.player.size()-1) + " player connected -> Game paused ...");
+        		Log.info("auto-pause: " + (Groups.player.size()-1) + " player connected -> Game paused...");
         	}
         	
         	if(rainbowedPlayers.contains(e.player.uuid())) rainbowedPlayers.remove(e.player.uuid());
@@ -121,12 +122,7 @@ public class moreCommandsPlugin extends Plugin {
     		}
         });
     	
-    	handler.register("auto-pause", "[on|off]", "Pause the game if there is no one connected", arg -> {
-    		if (arg.length == 0) {
-    			Log.err("Invalid arguments! Please use the argument [on|off] to enabled/disabled the auto pause if there is no one connected.");
-    			return;
-    		}
-    		
+    	handler.register("auto-pause", "<on|off>", "Pause the game if there is no one connected", arg -> {
     		switch (arg[0]) {
     			case "on":
     				autoPause = true;
@@ -134,18 +130,19 @@ public class moreCommandsPlugin extends Plugin {
     				
     				if (Groups.player.size() < 1 && autoPause) {
     					state.serverPaused = true;
-    					Log.info("auto-pause: " + Groups.player.size() + " player connected -> Game paused ...");
+    					Log.info("auto-pause: " + Groups.player.size() + " player connected -> Game paused...");
     				}
     				break;
+    			
     			case "off":
     				autoPause = false;
     				Log.info("Auto pause is disabled.");
     				
     	        	state.serverPaused = false;
-    	        	Log.info("Game unpaused ...");
+    	        	Log.info("auto-pause: " + Groups.player.size() + " player(s) connected -> Game unpaused...");
     				break;
-    			default: 
-    				Log.err("Invalid arguments! Please use the argument [on|off] to enabled/disabled the auto pause if there is no one connected.");
+    			
+    			default: Log.err("Invalid arguments! Please use the argument [on|off] to enabled/disabled the auto pause if there is no one connected.");
     		}
     	});
     	
@@ -155,12 +152,13 @@ public class moreCommandsPlugin extends Plugin {
         			tchat = true;
         			Log.info("Tchat enabled ...");
         			break;
+        		
         		case "off":
         			tchat = false;
         			Log.info("Tchat disabled ...");
         			break;
-        		default:
-        			Log.err("Invalid arguments. \n - The tchat is currently @.", tchat ? "enabled" : "disabled");
+        		
+        		default: Log.err("Invalid arguments. \n - The tchat is currently @.", tchat ? "enabled" : "disabled");
         	}
         });
         
@@ -171,6 +169,44 @@ public class moreCommandsPlugin extends Plugin {
     public void registerClientCommands(CommandHandler handler){
         handler.<Player>register("ut","unit type", (args, player) ->{
            player.sendMessage("You're a [sky]" + player.unit().type().name + "[].");
+        });
+        
+        handler.<Player>register("dm", "<ID|username> <message...>","Send a message to a player (replace all spaces with '_' in the name)", (args, player) ->{
+        	Player target = Groups.player.find(p -> p.name().equalsIgnoreCase(args[0]) || p.uuid().equalsIgnoreCase(args[0]));
+        	if (target == null) target = Groups.player.find(p -> p.name().equalsIgnoreCase(args[0].replaceAll("_", " ")));
+        	
+            if(target == null) err(player, "Player not connected or doesn't exist!");
+            else {
+            	 player.sendMessage("\n[gold]Private Message: [sky]you[gold] --> [white]" + target.name + "[gold]\n--------------------------------\n[white]" + args[1]);
+            	 target.sendMessage("\n[gold]Private Message: [white]" + player.name + "[gold] --> [sky]you[gold]\n--------------------------------\n[white]" + args[1]);
+            }
+         });
+
+        handler.<Player>register("maps", "[page]", "List all maps on server", (arg, player) -> {
+            int page = 1;
+			if (arg.length == 1) page = Strings.parseInt(arg[0]);
+			int lines = 6;
+            Seq<Map> list = maps.all();
+            int pages = Mathf.ceil(list.size / lines);
+            if (list.size % lines != 0) pages++;
+            int index=(page-1)*lines;
+            
+            if (page > pages || page < 1) {
+            	player.sendMessage("[scarlet]'page' must be a number between[orange] 1[] and [orange]" + pages + "[].");
+            	return;
+            }
+            
+            player.sendMessage("\n[orange]---- [gold]Maps list [lightgray]" + page + "[white]/[lightgray]" + pages + "[orange] ----");
+            for (int i=0; i<lines;i++) {
+            	try {
+            		player.sendMessage("[orange]  - []" + list.get(index).name() + "[orange] | []" + list.get(index).width + "x" + list.get(index).height);
+            		index++;
+            	} catch (IndexOutOfBoundsException e) {
+            		break;
+            	}
+            }
+            player.sendMessage("[orange]-----------------------");
+            
         });
         
         handler.<Player>register("vnw", "(VoteNewWave) Vote for Sending a new Wave", (args, player) -> {
@@ -191,33 +227,6 @@ public class moreCommandsPlugin extends Plugin {
             state.wavetime = 0f;
             task.cancel();
 		});
-
-        handler.<Player>register("maps", "[page]", "List all maps on server", (arg, player) -> {
-            int page = 1;
-			if (arg.length == 1) page = Strings.parseInt(arg[0]);
-			int lines = 6;
-            Seq<Map> list = maps.all();
-            int pages = Mathf.ceil(list.size / lines);
-            if (list.size % lines != 0) pages++;
-            int index=(page-1)*lines;
-            
-            if (page > pages || page < 1) {
-            	player.sendMessage("[scarlet]'page' must be a number between[orange] 1[] and [orange]" + pages + "[].");
-            	return;
-            }
-            
-            player.sendMessage("\n[orange]---- [][gold]Maps list [lightgray]" + page + "[white]/[lightgray]" + pages + "[orange] ----");
-            for (int i=0; i<lines;i++) {
-            	try {
-            		player.sendMessage("[orange]  - []" + list.get(index).name() + "[][orange] | []" + list.get(index).width + "x" + list.get(index).height);
-            		index++;
-            	} catch (IndexOutOfBoundsException e) {
-            		break;
-            	}
-            }
-            player.sendMessage("[orange]-----------------------");
-            
-        });
         
         handler.<Player>register("rtv", "Rock the vote to change map", (arg, player) -> {
         	if (votesRTV.contains(player.uuid()) || votesRTV.contains(netServer.admins.getInfo(player.uuid()).lastIP)) {
@@ -248,11 +257,10 @@ public class moreCommandsPlugin extends Plugin {
             		infos = netServer.admins.findByName(arg[0]);
             		type = true;
             	} else { 
-            		player.sendMessage("[scarlet]You don't have the permission to use arguments!");
+            		err(player, "You don't have the permission to use arguments!");
             		return;
             	}
         	} else infos = netServer.admins.findByName(player.name);
-
 			if (infos.size == 0) pI = netServer.admins.getInfo(arg[0]);
 			
             if (infos.size > 0) {
@@ -284,7 +292,7 @@ public class moreCommandsPlugin extends Plugin {
                 	player.sendMessage(builder.toString());
                 	builder = new StringBuilder();
                 }
-           } else player.sendMessage("[accent]This player doesn't exist!");
+           } else err(player, "This player doesn't exist!");
         });
         
         handler.<Player>register("rainbow", "Give your username a rainbow animation", (arg, player) -> {
@@ -379,7 +387,7 @@ public class moreCommandsPlugin extends Plugin {
                 Call.setPlayerTeamEditor(player, ret.team);
                 player.team(ret.team);
                 player.sendMessage("> You changed to team [sky]" + ret.team);
-            }else player.sendMessage("[scarlet]You can't change teams ...");
+            } else err(player, "You can't change teams ...");
         });
 
         handler.<Player>register("spectate", "[scarlet]Admin only[]", (args, player) -> {
@@ -395,8 +403,7 @@ public class moreCommandsPlugin extends Plugin {
                 player.team(Team.all[8]);
                 Call.setPlayerTeamEditor(player, Team.all[8]);
                 player.unit().kill();
-                player.sendMessage("[green]SPECTATE MODE[]");
-                player.sendMessage("use /team or /spectate to go back to player mode");
+                player.sendMessage("[green]SPECTATE MODE[] \nuse /team or /spectate to go back to player mode.");
             }
         });
         
@@ -412,8 +419,7 @@ public class moreCommandsPlugin extends Plugin {
         	
             switch (arg[0]) {
             	case "ban":
-            		builder.append("\nTotal banned players : [green]").append(netServer.admins.getBanned().size).append("[].\n[gold]--------------------------------[]").append("\n[accent]Banned Players:");
-            		player.sendMessage(builder.toString());
+            		player.sendMessage("\nTotal banned players : [green]"+ netServer.admins.getBanned().size + ". \n[gold]-------------------------------- \n[accent]Banned Players:");
             		netServer.admins.getBanned().each(p -> {
             			player.sendMessage("[white]======================================================================\n" +
             					"[lightgray]" + p.id +"[white] / Name: [lightgray]" + p.lastName.replaceAll("\\[", "[[") + "[white]\n" +
@@ -428,7 +434,6 @@ public class moreCommandsPlugin extends Plugin {
             			if (p.admin) builder.append("[white] | [scarlet]Admin[]");
             			builder.append("\n[accent]");
             		}
-            		player.sendMessage(builder.toString());
             		break;
             	
             	case "all":
@@ -437,20 +442,15 @@ public class moreCommandsPlugin extends Plugin {
             			builder.append("[white] - [lightgray]Names: [accent]").append(p.names).append("[white] - [lightgray]ID: [accent]'").append(p.id).append("'");
             			if (p.admin) builder.append("[white] | [scarlet]Admin");
             			if (p.banned) builder.append("[white] | [orange]Banned");
-            			for (Player pID: Groups.player) {
-            				if (p.id.equals(pID.uuid())) {
-            					builder.append("[white] | [green]Online");
-            					break;
-            				}
-            			}
+            			Player online = Groups.player.find(pl -> pl.uuid().equalsIgnoreCase(p.id));
+            			if (online != null) builder.append("[white] | [green]Online");
             			builder.append("\n");
             		}
-            		player.sendMessage(builder.toString());
             		break;
             	
-            	default:
-            		player.sendMessage("[scarlet]Invalid usage:[lightgray] Invalid arguments.");
+            	default: err(player, "Invalid usage:[lightgray] Invalid arguments.");
             }
+            player.sendMessage(builder.toString());
             
         });
 
@@ -483,7 +483,7 @@ public class moreCommandsPlugin extends Plugin {
             player.sendMessage(end);
         });
         
-        handler.<Player>register("tp", "<name|x,y> [to_name|x,y]", "Teleport to position or player", (arg, player) -> {
+        handler.<Player>register("tp", "<name|x,y> [to_name|x,y]", "Teleport to position or player (replace all spaces with '_' in the name)", (arg, player) -> {
         	if (!adminVerif(player)) return;
             
         	int x = 0, y = 0, to_x = 0, to_y = 0;
@@ -525,15 +525,15 @@ public class moreCommandsPlugin extends Plugin {
             			to_y = Integer.parseInt(__temp__[1]);
             		
             			if (__temp__.length > 2) {
-            				player.sendMessage("[scarlet]Wrong coordinates!");
+            				err(player, "Wrong coordinates!");
             				return;
             			}
             			foundToName = true;
             		} catch (NumberFormatException e) {
-            			player.sendMessage("[scarlet]Player doesn't exist or wrong coordinates!");
+            			err(player, "Player doesn't exist or wrong coordinates!");
             			return;
             		} catch (ArrayIndexOutOfBoundsException e) {
-            			player.sendMessage("[scarlet]Wrong coordinates!");
+            			err(player, "Wrong coordinates!");
             			return;
             		}
             	}
@@ -544,15 +544,15 @@ public class moreCommandsPlugin extends Plugin {
             		y = Integer.parseInt(__temp__[1]);
             		
             		if (__temp__.length > 2) {
-            			player.sendMessage("[scarlet]Wrong coordinates!");
+            			err(player, "Wrong coordinates!");
                 		return;
             		}
             		foundName = true;
             	} catch (NumberFormatException e) {
-            		player.sendMessage("[scarlet]Player doesn't exist or wrong coordinates!");
+            		err(player, "Player doesn't exist or wrong coordinates!");
             		return;
             	} catch (ArrayIndexOutOfBoundsException e) {
-            		player.sendMessage("[scarlet]Wrong coordinates!");
+            		err(player, "Wrong coordinates!");
             		return;
             	}
             }
@@ -637,7 +637,7 @@ public class moreCommandsPlugin extends Plugin {
             
             for (Player gPlayer : Groups.player) {
                 if (netServer.admins.isIDBanned(gPlayer.uuid())) {
-                    Call.sendMessage("[scarlet]" + gPlayer.name + " has been banned.");
+                    Call.sendMessage("[scarlet]/!\\[] " + gPlayer.name + "[scarlet] has been banned of the server.");
                     gPlayer.con.kick(KickReason.banned);
                 }
             }
@@ -670,13 +670,13 @@ public class moreCommandsPlugin extends Plugin {
     }
     
     
-    private void err(Player player, String fmt, Object... msg) {
+    public void err(Player player, String fmt, Object... msg) {
     	player.sendMessage("[scarlet]Error: " + String.format(fmt, msg));
     }
-    private void info(Player player, String fmt, Object... msg) {
+    public void info(Player player, String fmt, Object... msg) {
     	player.sendMessage("Info: " + String.format(fmt, msg));
     }
-    private boolean adminVerif(Player player) {
+    public boolean adminVerif(Player player) {
     	if(!player.admin()){
     		player.sendMessage("[scarlet]This command is only for admins!");
             return false;
