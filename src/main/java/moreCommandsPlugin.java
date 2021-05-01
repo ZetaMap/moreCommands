@@ -186,10 +186,6 @@ public class moreCommandsPlugin extends Plugin {
         		default: Log.err("Invalid arguments. \n - The tchat is currently @.", tchat ? "enabled" : "disabled");
         	}
         });
-        
-        handler.register("test", "test", arg -> {
-        	Log.info(TempPlayerData.tempPlayerDatas.values() + "");
-        });
     }
     
     //register commands that player can invoke in-game
