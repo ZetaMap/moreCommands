@@ -4,12 +4,11 @@ import static mindustry.Vars.state;
 import static mindustry.Vars.world;
 
 import java.awt.Color;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 
+import arc.Core;
 import arc.Events;
 import arc.math.Mathf;
 import arc.struct.ObjectMap;
@@ -18,11 +17,12 @@ import arc.struct.Seq;
 import arc.util.CommandHandler;
 import arc.util.Log;
 import arc.util.Strings;
-import arc.util.Timer;
+import arc.util.Timer.Task;
 import mindustry.content.Blocks;
 import mindustry.core.NetClient;
 import mindustry.game.EventType.GameOverEvent;
 import mindustry.game.EventType.PlayerChatEvent;
+import mindustry.game.EventType.PlayerConnect;
 import mindustry.game.EventType.PlayerJoin;
 import mindustry.game.EventType.PlayerLeave;
 import mindustry.game.Team;
@@ -31,7 +31,7 @@ import mindustry.gen.Groups;
 import mindustry.gen.Player;
 import mindustry.maps.Map;
 import mindustry.mod.Plugin;
-import mindustry.net.Administration;
+import mindustry.net.Administration.ChatFilter;
 import mindustry.net.Administration.PlayerInfo;
 import mindustry.net.NetConnection;
 import mindustry.net.Packets.KickReason;
@@ -40,65 +40,81 @@ import mindustry.world.Tile;
 
 
 public class moreCommandsPlugin extends Plugin {
-	Timer.Task task;
+	Task task;
 	private double ratio = 0.6;
     private HashSet<String> votesVNW = new HashSet<>(), votesRTV = new HashSet<>();
     private ObjectMap<Player, Team> rememberSpectate = new ObjectMap<>();
     private static ArrayList<String> rainbowedPlayers = new ArrayList<>(); // player
-    public static HashMap<String, TempPlayerData> tempPlayerDatas = new HashMap<>(); // uuid, data
     private boolean confirm = false, autoPause = false, tchat = true;
-
+    
+    public void init() {netServer.admins.addChatFilter((player, message) -> null);} //delete the tchat
     public moreCommandsPlugin() {
+    	Events.on(PlayerJoin.class, e -> TempPlayerData.tempPlayerDatas.put(e.player.uuid(), new TempPlayerData(0, e.player.name, e.player.id))); // add player in TempPlayerData
+		Events.on(PlayerLeave.class, e -> TempPlayerData.tempPlayerDatas.remove(e.player.uuid())); // remove player in TempPlayerData
+
     	//clear VNW & RTV votes on game over
         Events.on(GameOverEvent.class, e -> {
         	votesVNW.clear();
             votesRTV.clear();
         });
+        
+        //kick the player if there is [Server] or [server] in his nickname
+        Events.on(PlayerConnect.class, e -> {
+        	if (e.player.name.contains("[Server]") || e.player.name.contains("[server]")) {
+        		e.player.kick("Please don't use [Server] or [server] in your username!");
+        		return;
+        	}
+        });
 
+        //unpause the game if one player is connected
         Events.on(PlayerJoin.class, e -> {
         	if (Groups.player.size() >= 1 && autoPause) {
         		state.serverPaused = false;
         		Log.info("auto-pause: " + Groups.player.size() + " player(s) connected -> Game unpaused...");
         	}
-        	
-        	tempPlayerDatas.put(e.player.uuid(), new TempPlayerData(0, e.player.name));
         });
-        
+
+        //pause the game if no one is connected. And remove the rainbow of this player
         Events.on(PlayerLeave.class, e -> {
         	if (Groups.player.size()-1 < 1 && autoPause) {
         		state.serverPaused = true;
         		Log.info("auto-pause: " + (Groups.player.size()-1) + " player connected -> Game paused...");
         	}
-        	
+
         	if(rainbowedPlayers.contains(e.player.uuid())) rainbowedPlayers.remove(e.player.uuid());
-            
-        	tempPlayerDatas.remove(e.player.uuid());
         });
 
-/* Isn't implement for the moment!        
-        if (tchat == false) {
-        	Events.on(PlayerChatEvent.class, e -> {
-        		if (!e.player.admin) e.message.replace(e.message, "");
-        	 
-        	});
-
-        }
-*/
+        //recreate the tchat for the command /tchat
+        Events.on(PlayerChatEvent.class, e -> {
+        	if (!e.message.startsWith("/")) {
+        		if (tchat) {
+        			Call.sendMessage(e.message,  NetClient.colorizeName(e.player.id, e.player.name), e.player);
+        			Log.info("<" + e.player.name + ": " + e.message + ">");
+        		}
+        		else {
+        			if (e.player.admin) {
+        				Call.sendMessage(e.message, "[scarlet]<Admin>[]" + NetClient.colorizeName(e.player.id, e.player.name), e.player);
+        				Log.info("<[Admin]" + e.player.name + ": " + e.message + ">");
+        			}
+        			else e.player.sendMessage("[scarlet]The tchat is disabled, you can't write!");
+        		}
+    	   }
+        }); 
     }
     
-    
+
     //register commands that run on the server
     @Override
     public void registerServerCommands(CommandHandler handler){
     	handler.register("unban-all", "[y|n]", "Unban all IP and ID", arg -> {
-    		if (arg.length == 1 && confirm == false) {
+    		if (arg.length == 1 && !confirm) {
     			Log.err("Use first: 'unban-all', before confirming the command.");
     			return;
-    		} else if (confirm == false) {
+    		} else if (!confirm) {
     			Log.info("Are you sure to unban all all IP and ID ? (unban-all [y|n])");
     			confirm = true;
     			return;
-    		} else if (arg.length == 0 && confirm == true) {
+    		} else if (arg.length == 0 && confirm) {
     			Log.info("Are you sure to unban all all IP and ID ? (unban-all [y|n])");
     			confirm = true;
     			return;
@@ -106,9 +122,8 @@ public class moreCommandsPlugin extends Plugin {
 
     		switch (arg[0]) {
     			case "y":
-    				Administration pBanned = netServer.admins;
-    				pBanned.getBanned().each(unban -> pBanned.unbanPlayerID(unban.id));
-    				pBanned.getBannedIPs().each(ip -> pBanned.unbanPlayerIP(ip));
+    				netServer.admins.getBanned().each(unban -> netServer.admins.unbanPlayerID(unban.id));
+    				netServer.admins.getBannedIPs().each(ip -> netServer.admins.unbanPlayerIP(ip));
     				Log.info("All all IP and ID have been unbanned!");
     				confirm = false;
     				break;
@@ -149,19 +164,32 @@ public class moreCommandsPlugin extends Plugin {
         handler.register("tchat", "<on|off>", "Enabled/disabled the tchat", arg -> {
         	switch (arg[0]) {
         		case "on":
+        			if (tchat) {
+        				Log.err("Disabled first!");
+        				return;
+        			}
         			tchat = true;
         			Log.info("Tchat enabled ...");
+        			Call.sendMessage("\n[gold]-------------------- \n[scarlet]/!\\[orange] The tchat is enabled! [lightgray](by [scarlet][[Server][]) \n[gold]--------------------\n");
         			break;
         		
         		case "off":
+        			if (!tchat) {
+        				Log.err("Enabled first!");
+        				return;
+        			}
         			tchat = false;
         			Log.info("Tchat disabled ...");
+        			Call.sendMessage("\n[gold]-------------------- \n[scarlet]/!\\[orange] The tchat is disabled! [lightgray](by [scarlet][[Server][]) \n[gold]--------------------\n");
         			break;
         		
         		default: Log.err("Invalid arguments. \n - The tchat is currently @.", tchat ? "enabled" : "disabled");
         	}
         });
         
+        handler.register("test", "test", arg -> {
+        	Log.info(TempPlayerData.tempPlayerDatas.values() + "");
+        });
     }
     
     //register commands that player can invoke in-game
@@ -299,11 +327,11 @@ public class moreCommandsPlugin extends Plugin {
            if(rainbowedPlayers.contains(player.uuid())) {
         	   player.sendMessage("[sky]Rainbow effect toggled off.");
                rainbowedPlayers.remove(player.uuid());
-               player.name = tempPlayerDatas.get(player.uuid()).realName;
+               player.name = TempPlayerData.tempPlayerDatas.get(player.uuid()).realName;
            } else {
                player.sendMessage("[sky]Rainbow effect toggled on.");
                rainbowedPlayers.add(player.uuid());
-               TempPlayerData pData = tempPlayerDatas.get(player.uuid());
+               TempPlayerData pData = TempPlayerData.tempPlayerDatas.get(player.uuid());
                
                Thread rainbowLoop = new Thread() {
 					public void run() {
@@ -316,7 +344,7 @@ public class moreCommandsPlugin extends Plugin {
                                    String hex = "#" + Integer.toHexString(Color.getHSBColor(hue / 360f, 1f, 1f).getRGB()).substring(2);
                                    player.name =  "[" + hex + "]" + pData.nameNotColor;
                                    pData.setHue(hue);
-                                   tempPlayerDatas.replace(player.uuid(), pData);
+                                   TempPlayerData.tempPlayerDatas.replace(player.uuid(), pData);
                                    
                                    Thread.sleep(50);
                                } catch (InterruptedException e) {
@@ -409,7 +437,7 @@ public class moreCommandsPlugin extends Plugin {
         
         handler.<Player>register("am", "<message...>", "Send a message as admin", (arg, player) -> {
         	if (!adminVerif(player)) return;
-        	Groups.player.each(p -> p.sendMessage(arg[0], player, "[scarlet]<Admin>" + NetClient.colorizeName(player.id, player.name)));
+        	Call.sendMessage(arg[0], "[scarlet]<Admin>[]" + NetClient.colorizeName(player.id, player.name), player);
         });
         
         handler.<Player>register("players", "<all|online|ban>", "Gives the list of players according to the type of filter given", (arg, player) -> {
@@ -579,7 +607,7 @@ public class moreCommandsPlugin extends Plugin {
             	Call.setPosition(playerCon, to_x*8, to_y*8);
             	playerCon.player.snapSync();
             	player.sendMessage("You teleported [accent]" + playerCon.player.name + "[] to [accent]" + to_x + "[]x[accent]" + to_y + "[].");
-            
+            			
             } else {
             	if (x > world.width() || x < 0 || y > world.height() || y < 0) {
             		player.sendMessage("[scarlet]Coordinates too large. Max: [orange]" + world.width() + "[]x[orange]" + world.height() + "[]. Min : [orange]0[]x[orange]0[].");
@@ -591,6 +619,32 @@ public class moreCommandsPlugin extends Plugin {
             	player.snapSync();
             	player.sendMessage("You teleported to [accent]" + x + "[]x[accent]" + y + "[].");
             }		
+        });  
+        
+        handler.<Player>register("tchat", "<on|off>", "Enabled/disabled the tchat", (arg, player) -> {
+        	if (!adminVerif(player)) return;
+        	
+        	switch (arg[0]) {
+        		case "on":
+        			if (tchat) {
+        				err(player, "Disabled first!");
+        				return;
+        			}
+        			tchat = true;
+        			Call.sendMessage("\n[gold]-------------------- \n[scarlet]/!\\[orange] The tchat is enabled! [lightgray](by " + player.name + "[lightgray]) \n[gold]--------------------\n");
+        			Log.info("Tchat enabled by " + player.name + ".");
+        			break;
+        		case "off":
+        			if (!tchat) {
+        				err(player, "Enabled first!");
+        				return;
+        			}
+        			tchat = false;
+        			Call.sendMessage("\n[gold]-------------------- \n[scarlet]/!\\[orange] The tchat is disabled! [lightgray](by " + player.name + "[lightgray]) \n[gold]--------------------\n");
+        			Log.info("Tchat disabled by " + player.name + ".");
+        			break;
+        		default: err(player, "Invalid arguments.[] \n - The tchat is currently [accent]%s[].", tchat ? "enabled" : "disabled");
+        	}
         });   
         
         handler.<Player>register("kick", "<ID|username...>", "Kick a person by name or ID", (arg, player) -> {
@@ -649,24 +703,6 @@ public class moreCommandsPlugin extends Plugin {
             if (netServer.admins.unbanPlayerIP(arg[0]) || netServer.admins.unbanPlayerID(arg[0])) info(player, "Unbanned player: [accent]%s", arg[0]);
             else err(player, "That IP/ID is not banned!");
         });
-        
-        handler.<Player>register("tchat", "<on|off>", "Enabled/disabled the tchat", (arg, player) -> {
-        	switch (arg[0]) {
-        		case "on":
-        			tchat = true;
-        			Call.sendMessage("\n[gold]-------------------- \\n[scarlet] The tchat is enabled! [lightgray](by " + player.name + "[lightgray]) \n[gold]--------------------\n");
-        			Log.info("Tchat enabled by " + player.name + ".");
-        			break;
-        		case "off":
-        			tchat = false;
-        			Call.sendMessage("\n[gold]-------------------- \n[scarlet] The tchat is disabled! [lightgray](by " + player.name + "[lightgray]) \n[gold]--------------------\n");
-        			Log.info("Tchat disabled by " + player.name + ".");
-        			break;
-        		default:
-        			err(player, "Invalid arguments.[] \n - The tchat is currently [accent]%s[].", tchat ? "enabled" : "disabled");
-        	}
-        });
-
     }
     
     
@@ -726,22 +762,4 @@ public class moreCommandsPlugin extends Plugin {
         }
     }
     
-	@SuppressWarnings("serial")
-	public class TempPlayerData implements Serializable {
-		Integer hue;
-        String realName = "";
-        String nameNotSpace = "";
-		String nameNotColor = "";
-		
-		TempPlayerData(Integer hue, String name){
-            this.hue = hue;
-            this.realName = name;
-            this.nameNotSpace = name.replaceAll("\\s+", "_");
-            this.nameNotColor = name.replaceAll("\\[", "[[");
-        }
-        void setHue(int i) {
-        	this.hue = i; 
-        }
-    }
-
 }
