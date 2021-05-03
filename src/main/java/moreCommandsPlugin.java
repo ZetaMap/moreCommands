@@ -41,14 +41,14 @@ import mindustry.world.Tile;
 
 
 public class moreCommandsPlugin extends Plugin {
-	Task task;
-	private double ratio = 0.6;
+    Task task;
+    private double ratio = 0.6;
     private HashSet<String> votesVNW = new HashSet<>(), votesRTV = new HashSet<>();
     private ObjectMap<Player, Team> rememberSpectate = new ObjectMap<>();
     private static ArrayList<String> rainbowedPlayers = new ArrayList<>(); // player
     private boolean confirm = false, autoPause = false, tchat = true;
     
-    public void init() {netServer.admins.addChatFilter((player, message) -> null);} //delete the tchat
+    public void init() { netServer.admins.addChatFilter((player, message) -> null); } //delete the tchat
     public moreCommandsPlugin() {
     	Events.on(PlayerJoin.class, e -> TempPlayerData.tempPlayerDatas.put(e.player.uuid(), new TempPlayerData(0, e.player.name, e.player.id))); // add player in TempPlayerData
 		Events.on(PlayerLeave.class, e -> TempPlayerData.tempPlayerDatas.remove(e.player.uuid())); // remove player in TempPlayerData
@@ -75,7 +75,7 @@ public class moreCommandsPlugin extends Plugin {
         	}
         });
 
-        //pause the game if no one is connected. And remove the rainbow of this player
+        //pause the game if no one is connected. Remove the rainbow and spectate mode of this player.
         Events.on(PlayerLeave.class, e -> {
         	if (Groups.player.size()-1 < 1 && autoPause) {
         		state.serverPaused = true;
@@ -83,6 +83,8 @@ public class moreCommandsPlugin extends Plugin {
         	}
 
         	if(rainbowedPlayers.contains(e.player.uuid())) rainbowedPlayers.remove(e.player.uuid());
+        	
+        	if(rememberSpectate.containsKey(e.player)) rememberSpectate.remove(e.player);
         });
 
         //recreate the tchat for the command /tchat
@@ -112,11 +114,11 @@ public class moreCommandsPlugin extends Plugin {
     			Log.err("Use first: 'unban-all', before confirming the command.");
     			return;
     		} else if (!confirm) {
-    			Log.info("Are you sure to unban all all IP and ID ? (unban-all [y|n])");
+    			Log.warn("Are you sure to unban all all IP and ID ? (unban-all [y|n])");
     			confirm = true;
     			return;
     		} else if (arg.length == 0 && confirm) {
-    			Log.info("Are you sure to unban all all IP and ID ? (unban-all [y|n])");
+    			Log.warn("Are you sure to unban all all IP and ID ? (unban-all [y|n])");
     			confirm = true;
     			return;
     		}
@@ -253,7 +255,6 @@ public class moreCommandsPlugin extends Plugin {
             	}
             }
             player.sendMessage("[orange]-----------------------");
-            
         });
         
         handler.<Player>register("vnw", "(VoteNewWave) Vote for Sending a new Wave", (args, player) -> {
@@ -272,7 +273,8 @@ public class moreCommandsPlugin extends Plugin {
             votesVNW.clear();
             Call.sendMessage("[scarlet]VNW: [green]Vote passed. New Wave will be Spawned!");
             state.wavetime = 0f;
-            try { task.cancel();
+            try { 
+            	task.cancel();
             } catch (Exception e) {}
 		});
         
@@ -300,7 +302,7 @@ public class moreCommandsPlugin extends Plugin {
         	PlayerInfo pI = netServer.admins.findByIP(player.ip());
         	boolean type = false;
         	
-			if(arg.length >= 1) {
+        	if(arg.length >= 1) {
         		if (player.admin()) {
             		infos = netServer.admins.findByName(arg[0]);
             		type = true;
@@ -339,7 +341,6 @@ public class moreCommandsPlugin extends Plugin {
                 								"\n[white] - Is admin: [accent]" + infos.get(pI).admin);
                 	builder.append("\n[gold]----------------------------------------");
                 	
-                	
                 	if (!type) Call.infoMessage(player.con, builder.toString());
                 	else player.sendMessage(builder.toString());
                 	builder = new StringBuilder();
@@ -347,38 +348,54 @@ public class moreCommandsPlugin extends Plugin {
            } else err(player, "This player doesn't exist!");
         });
         
-        handler.<Player>register("rainbow", "Give your username a rainbow animation", (arg, player) -> {
-           if(rainbowedPlayers.contains(player.uuid())) {
-        	   player.sendMessage("[sky]Rainbow effect toggled off.");
-               rainbowedPlayers.remove(player.uuid());
-               player.name = TempPlayerData.tempPlayerDatas.get(player.uuid()).realName;
-           } else {
-               player.sendMessage("[sky]Rainbow effect toggled on.");
-               rainbowedPlayers.add(player.uuid());
-               TempPlayerData pData = TempPlayerData.tempPlayerDatas.get(player.uuid());
+        handler.<Player>register("rainbow", "[ID]", "[#ff0000]R[#ff7f00]A[#ffff00]I[#00ff00]N[#0000ff]B[#2e2b5f]O[#8B00ff]W[#ff0000]![#ff7f00]!", (arg, player) -> {
+        	if (arg.length == 0) {
+        		if(rainbowedPlayers.contains(player.uuid())) {
+        			player.sendMessage("[sky]Rainbow effect toggled off.");
+        			rainbowedPlayers.remove(player.uuid());
+        			player.name = TempPlayerData.tempPlayerDatas.get(player.uuid()).realName;
+        		} else {
+        			player.sendMessage("[sky]Rainbow effect toggled on.");
+        			rainbowedPlayers.add(player.uuid());
+        			TempPlayerData pData = TempPlayerData.tempPlayerDatas.get(player.uuid());
                
-               Thread rainbowLoop = new Thread() {
-					public void run() {
-                		   while(rainbowedPlayers.contains(player.uuid())) {
-                			   try {
-                				   Integer hue = pData.hue;
-                                   if (hue < 360) hue++;
-                                   else hue = 0;
+        			Thread rainbowLoop = new Thread() {
+        				public void run() {
+        					while(rainbowedPlayers.contains(player.uuid())) {
+        						try {
+        							Integer hue = pData.hue;
+                                    if (hue < 360) hue++;
+                                    else hue = 0;
                                    
-                                   String hex = "#" + Integer.toHexString(Color.getHSBColor(hue / 360f, 1f, 1f).getRGB()).substring(2);
-                                   player.name =  "[" + hex + "]" + pData.nameNotColor;
-                                   pData.setHue(hue);
-                                   TempPlayerData.tempPlayerDatas.replace(player.uuid(), pData);
-                                   
-                                   Thread.sleep(50);
-                               } catch (InterruptedException e) {
-                            	   e.printStackTrace();
-                               }
-                		   }
-                       }
-                   };
-               rainbowLoop.start();
-           } 
+                                    String hex = "[#" + Integer.toHexString(Color.getHSBColor(hue / 360f, 1f, 1f).getRGB()).substring(2) + "]";
+                                    player.name = hex + pData.nameNotColor;
+                                    pData.setHue(hue);
+                                    TempPlayerData.tempPlayerDatas.replace(player.uuid(), pData);
+//##################################################################################################################
+                                    Thread.sleep(50);
+        						} catch (InterruptedException e) {
+                            	    e.printStackTrace();
+                                }
+        					}
+        				}
+        			};
+        			rainbowLoop.start();
+        		}
+        	} else {
+        		if (player.admin) {
+        			warn(player, "This will remove the rainbow from the person matching the argument.");
+        			
+        			Player rPlayer = Groups.player.find(p -> p.uuid().equalsIgnoreCase(arg[0]));
+        			
+        			if(rPlayer != null && rainbowedPlayers.contains(arg[0])) {
+            			rainbowedPlayers.remove(arg[0]);
+            			rPlayer.name = TempPlayerData.tempPlayerDatas.get(arg[0]).realName;
+            			player.sendMessage("[sky]Rainbow effect toggled off for the player [accent]" + rPlayer.name + "[].");
+        			} else err(player, "This player not have the rainbow or doesn't exist.");
+        			
+        		} else err(player, "You don't have the permission to use arguments!");
+        	}
+        	
         });
        
         handler.<Player>register("team", "[teamname]","change team", (args, player) ->{
@@ -446,7 +463,7 @@ public class moreCommandsPlugin extends Plugin {
             } else err(player, "Other team has no core, can't change!");
         });
 
-        handler.<Player>register("spectate", "[scarlet]Admin only[]", (args, player) -> {
+        handler.<Player>register("spectate", "Enter/leave spectate mode", (args, player) -> {
         	if (!adminCheck(player)) return;
             
             if(rememberSpectate.containsKey(player)){
@@ -531,6 +548,8 @@ public class moreCommandsPlugin extends Plugin {
         handler.<Player>register("core", "<small|meduim|big>", "Spawn a core to your corrdinate", (arg, player) -> {
         	if (!adminCheck(player)) return;
 
+        	warn(player, "This will destroy all the blocks which will be hampered by the construction of the core.");
+        	
         	Block core;
         	if (arg[0].equals("small")) core = Blocks.coreShard;
         	else if (arg[0].equals("medium")) core = Blocks.coreFoundation; 
@@ -571,6 +590,7 @@ public class moreCommandsPlugin extends Plugin {
             				break;
             			}
             		}
+
             		for (PlayerInfo to_p : toName) {
             			if (to_p.id.equals(pPos.uuid())) {
             				to_x = Math.round(pPos.x/8);
@@ -734,7 +754,18 @@ public class moreCommandsPlugin extends Plugin {
             if (netServer.admins.unbanPlayerIP(arg[0]) || netServer.admins.unbanPlayerID(arg[0])) info(player, "Unbanned player: [accent]%s", arg[0]);
             else err(player, "That IP/ID is not banned!");
         });
-
+/*        
+        handler.<Player>register("test", "test", (arg, player) -> {
+        	StringBuilder builder = new StringBuilder();
+        	
+        	for (int i=0; i<100; i++) {
+        		builder.append(i + "\n");
+        	}
+        	Call.infoMessage(player.con, "mmmmmmfmmmmmmmmmmmmmm7mmmmmmmmmmm5mmmmmmmmmmmmmmmmmmmm3mmmmmmmmmmmmmmmmmmm2mmmmmmmmm");
+        	Call.infoMessage(player.con, builder.toString());
+        	Call.infoPopup("[scarlet]test test test", 3, 5, 100, 100, 100, 100);
+        });
+*/
     }
     
     
@@ -748,7 +779,7 @@ public class moreCommandsPlugin extends Plugin {
     	player.sendMessage("[gold]Warning: []" + String.format(fmt, msg));
     }
     
-    //check the player if he is admin 
+    //check the player if admin 
     public boolean adminCheck(Player player) {
     	if(!player.admin()){
     		player.sendMessage("[scarlet]This command is only for admins!");
@@ -756,14 +787,6 @@ public class moreCommandsPlugin extends Plugin {
     	} else return true;
     }
     
-    //leave spectate mode
-    public void SpectateLeave(){
-        Events.on(PlayerLeave.class, event -> {
-            if(rememberSpectate.containsKey(event.player)){
-                rememberSpectate.remove(event.player);
-            }
-        });
-    }
     //search a possible team
     private Team getPosTeam(Player p){
         Team currentTeam = p.team();
