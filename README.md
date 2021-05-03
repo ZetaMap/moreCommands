@@ -6,7 +6,7 @@
 * `/maps` List all maps on server.
 * `/info-all [ID|username...]` Get all the player information.
 * `/rtv` Rock the vote to change map.
-* `/rainbow` Give your username a rainbow animation.
+* `/rainbow [ID]` RAINBOW!!
 * `/dm <username> <message...>` Send a message to a player. (replace all spaces with '_' in the name).
 * `/help [page]` Recreate /help to display only commands related to your rank.
 
