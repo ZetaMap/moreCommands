@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 
-import arc.Core;
 import arc.Events;
 import arc.math.Mathf;
 import arc.struct.ObjectMap;
@@ -32,12 +31,13 @@ import mindustry.gen.Groups;
 import mindustry.gen.Player;
 import mindustry.maps.Map;
 import mindustry.mod.Plugin;
-import mindustry.net.Administration.ChatFilter;
 import mindustry.net.Administration.PlayerInfo;
 import mindustry.net.NetConnection;
 import mindustry.net.Packets.KickReason;
 import mindustry.world.Block;
-import mindustry.world.Tile;
+
+import functions.PlayerFunctions;
+import functions.TempPlayerData;
 
 
 public class moreCommandsPlugin extends Plugin {
@@ -49,7 +49,7 @@ public class moreCommandsPlugin extends Plugin {
     private boolean confirm = false, autoPause = false, tchat = true;
     
     public void init() { netServer.admins.addChatFilter((player, message) -> null); } //delete the tchat
-    public moreCommandsPlugin() {
+	public moreCommandsPlugin() {
     	Events.on(PlayerJoin.class, e -> TempPlayerData.tempPlayerDatas.put(e.player.uuid(), new TempPlayerData(0, e.player.name, e.player.id))); // add player in TempPlayerData
 		Events.on(PlayerLeave.class, e -> TempPlayerData.tempPlayerDatas.remove(e.player.uuid())); // remove player in TempPlayerData
 
@@ -767,25 +767,11 @@ public class moreCommandsPlugin extends Plugin {
         });
 */
     }
-    
-    
-    public void err(Player player, String fmt, Object... msg) {
-    	player.sendMessage("[scarlet]Error: " + String.format(fmt, msg));
-    }
-    public void info(Player player, String fmt, Object... msg) {
-    	player.sendMessage("Info: " + String.format(fmt, msg));
-    }
-    public void warn(Player player, String fmt, Object... msg) {
-    	player.sendMessage("[gold]Warning: []" + String.format(fmt, msg));
-    }
-    
-    //check the player if admin 
-    public boolean adminCheck(Player player) {
-    	if(!player.admin()){
-    		player.sendMessage("[scarlet]This command is only for admins!");
-            return false;
-    	} else return true;
-    }
+
+    private void err(Player player, String fmt, Object... msg) { PlayerFunctions.err(player, fmt, msg); }
+    private void info(Player player, String fmt, Object... msg) { PlayerFunctions.info(player, fmt, msg); }
+    private void warn(Player player, String fmt, Object... msg) { PlayerFunctions.warn(player, fmt, msg); }
+    private boolean adminCheck(Player player) { return PlayerFunctions.adminCheck(player); }
     
     //search a possible team
     private Team getPosTeam(Player p){
