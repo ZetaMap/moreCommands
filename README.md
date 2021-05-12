@@ -23,6 +23,7 @@
 * `/tp <name|x,y> [to_name|x,y]` Teleport to a coordinate or a player. (replace all spaces with '_' in the name) 
 * `/core <small|medium|big>` Spawn a core to your corrdinate.
 * `/tchat <on|off>` Enabled/disabled the tchat.
+- [ ] `/spawn <unit> [team|username] [count]` Spawn a unit (you can use '~' for local team).
 
 ### Server Commands
 * `unban-all [y|n]` Unban all ID and IP.
@@ -56,3 +57,4 @@ Gee-aitcH - [GHMP-VoteNewWave](https://github.com/Gee-aitcH/GHMP-VoteNewWave)<br
 mayli - [RockTheVotePlugin](https://github.com/mayli/RockTheVotePlugin)<br>
 nichrosia - [autopause-plugin](https://github.com/nichrosia/autopause-plugin)<br>
 OceanPandorum - [PandorumPlugin](https://github.com/OceanPandorum/PandorumPlugin)
+Mindurka - [spawnUnit](https://github.com/Mindurka/spawnUnit)
