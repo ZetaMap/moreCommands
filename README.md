@@ -29,6 +29,7 @@
 * `unban-all [y|n]` Unban all ID and IP.
 * `auto-pause` Pause the game if no one is connected.
 * `tchat <on|off>` Enabled/disabled the tchat.
+- [ ] `tp-world-limit` Enabled/disabled the posibility to tp out worlds limits.
 
 
 ### Feedback
@@ -56,5 +57,5 @@ Shadow53 - [MindustryAdminPlugin](https://github.com/Shadow53/MindustryAdminPlug
 Gee-aitcH - [GHMP-VoteNewWave](https://github.com/Gee-aitcH/GHMP-VoteNewWave)<br>
 mayli - [RockTheVotePlugin](https://github.com/mayli/RockTheVotePlugin)<br>
 nichrosia - [autopause-plugin](https://github.com/nichrosia/autopause-plugin)<br>
-OceanPandorum - [PandorumPlugin](https://github.com/OceanPandorum/PandorumPlugin)
+OceanPandorum - [PandorumPlugin](https://github.com/OceanPandorum/PandorumPlugin)<br>
 Mindurka - [spawnUnit](https://github.com/Mindurka/spawnUnit)
