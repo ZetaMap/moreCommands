@@ -11,8 +11,7 @@
 * `/help [page]` Recreate /help to display only commands related to your rank.
 
 ### Admin Only Commands
-* `/team [teamname]` This command lets admins change teams.
-* `/spectate` Enter/leave spectate mode.
+* `/team [teamname|list|vanish]` This command lets admins change teams.
 * `/am <message...>` Send a message as admin.
 * `/kick <ID|username...>` Kick a person by name or ID.
 * `/pardon <ID>` Pardon a votekicked player by ID and allow them to join again.
@@ -29,7 +28,7 @@
 * `unban-all [y|n]` Unban all ID and IP.
 * `auto-pause` Pause the game if no one is connected.
 * `tchat <on|off>` Enabled/disabled the tchat.
-- [ ] `tp-world-limit` Enabled/disabled the posibility to tp out worlds limits.
+* `tp-world-limit` Enabled/disabled the posibility to tp out worlds limits.
 
 
 ### Feedback
