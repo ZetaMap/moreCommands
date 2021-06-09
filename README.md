@@ -22,7 +22,7 @@
 * `/tp <name|x,y> [to_name|x,y]` Teleport to a coordinate or a player. (replace all spaces with '_' in the name) 
 * `/core <small|medium|big>` Spawn a core to your corrdinate.
 * `/tchat <on|off>` Enabled/disabled the tchat.
-- [ ] `/spawn <unit> [team|username] [count]` Spawn a unit (you can use '~' for local team).
+* `/spawn <unit> [x,y|username] [teamname] [count]` Spawn a unit (you can use '~' for your local team or coordinates).
 
 ### Server Commands
 * `unban-all [y|n]` Unban all ID and IP.
