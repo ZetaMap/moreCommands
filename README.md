@@ -28,7 +28,6 @@
 * `unban-all [y|n]` Unban all ID and IP.
 * `auto-pause` Pause the game if no one is connected.
 * `tchat <on|off>` Enabled/disabled the tchat.
-* `tp-world-limit` Enabled/disabled the posibility to tp out worlds limits.
 - [ ] `strict-nickname` Automatically replace all spaces in nicknames with '_'.
 
 
