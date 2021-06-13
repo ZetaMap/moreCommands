@@ -28,7 +28,7 @@
 * `unban-all [y|n]` Unban all ID and IP.
 * `auto-pause` Pause the game if no one is connected.
 * `tchat <on|off>` Enabled/disabled the tchat.
-- [ ] `strict-nickname` Automatically replace all spaces in nicknames with '_'.
+- [ ] `strict-nicknames <on|off>` Automatically replace all spaces in nicknames with '_'.
 
 
 ### Feedback
