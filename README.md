@@ -3,7 +3,7 @@
 ## All players Commands
 * `/ut` Tells you the name of the unit you are controlling.
 * `/vnw` (VoteNewWave) Vote for Sending a new Wave.
-* `/maps` List all maps on server.
+* `/maps [page]` List all maps on server.
 * `/info-all [ID|username...]` Get all the player information.
 * `/rtv` Rock the vote to change map.
 * `/rainbow [ID]` RAINBOW!!
