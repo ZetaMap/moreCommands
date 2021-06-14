@@ -1,3 +1,4 @@
+import static mindustry.Vars.content;
 import static mindustry.Vars.maps;
 import static mindustry.Vars.netServer;
 import static mindustry.Vars.state;
@@ -18,8 +19,13 @@ import arc.util.CommandHandler.Command;
 import arc.util.Log;
 import arc.util.Strings;
 import arc.util.Timer.Task;
+
+import functions.PlayerFunctions;
+import functions.TempPlayerData;
+
 import mindustry.content.Blocks;
 import mindustry.core.NetClient;
+import mindustry.game.EventType.BlockBuildBeginEvent;
 import mindustry.game.EventType.GameOverEvent;
 import mindustry.game.EventType.PlayerChatEvent;
 import mindustry.game.EventType.PlayerConnect;
@@ -34,10 +40,8 @@ import mindustry.mod.Plugin;
 import mindustry.net.Administration.PlayerInfo;
 import mindustry.net.NetConnection;
 import mindustry.net.Packets.KickReason;
+import mindustry.type.UnitType;
 import mindustry.world.Block;
-
-import functions.PlayerFunctions;
-import functions.TempPlayerData;
 
 
 public class moreCommandsPlugin extends Plugin {
@@ -45,7 +49,8 @@ public class moreCommandsPlugin extends Plugin {
     private double ratio = 0.6;
     private HashSet<String> votesVNW = new HashSet<>(), votesRTV = new HashSet<>();
     private ObjectMap<Player, Team> rememberSpectate = new ObjectMap<>();
-    private static ArrayList<String> rainbowedPlayers = new ArrayList<>(); // player
+    private static ArrayList<String> rainbowedPlayers = new ArrayList<>();
+    private static ObjectMap<Player, Integer> creativePlayers = new ObjectMap<>();
     private boolean confirm = false, autoPause = false, tchat = true;
     
     public void init() { netServer.admins.addChatFilter((player, message) -> null); } //delete the tchat
@@ -67,11 +72,12 @@ public class moreCommandsPlugin extends Plugin {
         	}
         });
 
-        //unpause the game if one player is connected
+        //unpause the game if one player is connected.
         Events.on(PlayerJoin.class, e -> {
         	if (Groups.player.size() >= 1 && autoPause) {
         		state.serverPaused = false;
-        		Log.info("auto-pause: " + Groups.player.size() + " player(s) connected -> Game unpaused...");
+        		Log.info("auto-pause: " + Groups.player.size() + " player connected -> Game unpaused...");
+        		Call.sendMessage("auto-pause: " + Groups.player.size() + " player connected -> Game unpaused...");
         	}
         });
 
@@ -80,6 +86,7 @@ public class moreCommandsPlugin extends Plugin {
         	if (Groups.player.size()-1 < 1 && autoPause) {
         		state.serverPaused = true;
         		Log.info("auto-pause: " + (Groups.player.size()-1) + " player connected -> Game paused...");
+        		Call.sendMessage("auto-pause: " + (Groups.player.size()-1) + " player connected -> Game paused...");
         	}
 
         	if(rainbowedPlayers.contains(e.player.uuid())) rainbowedPlayers.remove(e.player.uuid());
@@ -103,6 +110,21 @@ public class moreCommandsPlugin extends Plugin {
         		}
     	   }
         }); 
+        
+        //for creative player
+        Events.on(BlockBuildBeginEvent.class, (e) -> {
+        	Player player = e.unit.getPlayer();
+        	
+        	if (player != null) {
+        		player.sendMessage(e.tile.block().name+"");
+        		
+        		if (creativePlayers.containsKey(player)) {
+        			if (e.breaking) Call.deconstructFinish(e.tile, e.tile.block(), e.unit);
+        			else Call.constructFinish(e.tile, e.tile.block(), e.unit, (byte)0, e.team, false);
+        		}
+        	}
+        	
+        });
     }
     
 
@@ -183,20 +205,50 @@ public class moreCommandsPlugin extends Plugin {
         		default: Log.err("Invalid arguments. \n - The tchat is currently @.", tchat ? "enabled" : "disabled");
         	}
         });
+/*        
+        handler.register("strict-nicknames", "<on|off>", "Automatically replace all spaces in nicknames with '_'", arg -> {
+        	if(state.is(State.playing)){
+                Log.err("Already hosting. Type 'stop' to stop hosting first.");
+                return;
+            }
+        	
+        	switch (arg[0]) {
+    			case "on":
+    				if (strictName) {
+    					Log.err("Disabled first!");
+    					return;
+    				}
+    				strictName = true;
+    				Log.info("Strict names is enabled ... All spaces in nicknames will be replaced by '_'");
+    				break;
+    		
+    			case "off":
+    				if (!strictName) {
+    					Log.err("Enabled first!");
+    					return;
+    				}
+    				strictName = false;
+    				Log.info("Strict names is disabled ... Nicknames are no longer subject to the rule");
+    				break;
+    		
+    			default: Log.err("Invalid arguments. \n - Strict names is currently @.", strictName ? "enabled" : "disabled");
+    		}
+        });
+*/
     }
     
     //register commands that player can invoke in-game
     @Override
     public void registerClientCommands(CommandHandler handler){
     	handler.removeCommand("help");
-    	handler.<Player>register("help", "[page]", "Lists all commands.", (arg, player) -> {
+    	handler.<Player>register("help", "[page]", "Lists all commands", (arg, player) -> {
         	if(arg.length > 0 && !Strings.canParseInt(arg[0])){
                 player.sendMessage("[scarlet]'page' must be a number.");
                 return;
             }
         	
         	int adminCommands = player.admin ? 0 : 12;
-        	int commandsPerPage = 6;
+        	int commandsPerPage = 8;
             int page = arg.length > 0 ? Strings.parseInt(arg[0]) : 1;
             int pages = Mathf.ceil(((float)handler.getCommandList().size - adminCommands) / commandsPerPage);
             
@@ -217,11 +269,16 @@ public class moreCommandsPlugin extends Plugin {
             player.sendMessage(result.toString());
         });
     	
-        handler.<Player>register("ut","unit type", (args, player) ->{
+    	handler.<Player>register("*","If you see an order with '*' in its description, it means you can replace all spaces with '_' in the name.", (args, player) -> {
+            player.sendMessage("If you see an order with '*' in its description, it means you can replace all spaces with '_' in the name.");
+         });
+         
+    	
+        handler.<Player>register("ut","unit type", (args, player) -> {
            player.sendMessage("You're a [sky]" + player.unit().type().name + "[].");
         });
         
-        handler.<Player>register("dm", "<ID|username> <message...>","Send a message to a player (replace all spaces with '_' in the name)", (args, player) ->{
+        handler.<Player>register("dm", "<ID|username> <message...>","Send a message to a player *", (args, player) -> {
         	Player target = Groups.player.find(p -> p.name().equalsIgnoreCase(args[0]) || p.uuid().equalsIgnoreCase(args[0]));
         	if (target == null) target = Groups.player.find(p -> p.name().equalsIgnoreCase(args[0].replaceAll("_", " ")));
         	
@@ -234,7 +291,7 @@ public class moreCommandsPlugin extends Plugin {
 
         handler.<Player>register("maps", "[page]", "List all maps on server", (arg, player) -> {
         	int page = arg.length > 0 ? Strings.parseInt(arg[0]) : 1;
-			int lines = 6;
+			int lines = 8;
             Seq<Map> list = maps.all();
             int pages = Mathf.ceil(list.size / lines);
             if (list.size % lines != 0) pages++;
@@ -248,7 +305,7 @@ public class moreCommandsPlugin extends Plugin {
             player.sendMessage("\n[orange]---- [gold]Maps list [lightgray]" + page + "[gray]/[lightgray]" + pages + "[orange] ----");
             for (int i=0; i<lines;i++) {
             	try {
-            		player.sendMessage("[orange]  - []" + list.get(index).name() + "[orange] | []" + list.get(index).width + "x" + list.get(index).height);
+            		player.sendMessage("[orange]  - []" + list.get(index).name() + "[orange] | [white]" + list.get(index).width + "x" + list.get(index).height);
             		index++;
             	} catch (IndexOutOfBoundsException e) {
             		break;
@@ -311,7 +368,7 @@ public class moreCommandsPlugin extends Plugin {
             		return;
             	}
         	} else infos = netServer.admins.findByName(player.name);
-			if (infos.size == 0) pI = netServer.admins.getInfo(arg[0]);
+			if (infos.size == 0 && arg.length >= 1) pI = netServer.admins.getInfo(arg[0]);
 			
             if (infos.size > 0) {
             	int i = 1;
@@ -368,6 +425,8 @@ public class moreCommandsPlugin extends Plugin {
                                     else hue = 0;
                                    
                                     String hex = "[#" + Integer.toHexString(Color.getHSBColor(hue / 360f, 1f, 1f).getRGB()).substring(2) + "]";
+                                    
+                                    
                                     player.name = hex + pData.nameNotColor;
                                     pData.setHue(hue);
                                     TempPlayerData.tempPlayerDatas.replace(player.uuid(), pData);
@@ -398,12 +457,11 @@ public class moreCommandsPlugin extends Plugin {
         	
         });
        
-        handler.<Player>register("team", "[teamname]","change team", (args, player) ->{
+        handler.<Player>register("team", "[teamname|list|vanish]","change team", (args, player) ->{
             if(!player.admin()){
                 player.sendMessage("[scarlet]Only admins can change team !");
                 return;
             }
-            
             StringBuilder builder = new StringBuilder();
             
             if(rememberSpectate.containsKey(player)){
@@ -411,6 +469,7 @@ public class moreCommandsPlugin extends Plugin {
                 player.team(rememberSpectate.get(player));
                 Call.setPlayerTeamEditor(player, rememberSpectate.get(player));
                 rememberSpectate.remove(player);
+                player.name = TempPlayerData.tempPlayerDatas.get(player.uuid()).realName;
                 return;
             }
             coreTeamReturn ret = null;
@@ -435,15 +494,29 @@ public class moreCommandsPlugin extends Plugin {
                     case "purple":
                         retTeam = Team.purple;
                         break;
-                    default: case "list":
-                        err(player, "[] available teams:");
+                    
+                    case "vanish":
+                    	rememberSpectate.put(player, player.unit().team);
+                        player.team(Team.all[8]);
+                        Call.setPlayerTeamEditor(player, Team.all[8]);
+                        player.unit().kill();
+                        player.sendMessage("[green]VANISH MODE[] \nuse /team to go back to player mode.");
+                        player.name = "";
+                    	return;
+                    case "list":
+                    	player.sendMessage("available teams:");
+                    	builder.append(" - [accent]vanish[]\n");
                         for (Team team : Team.baseTeams) {
                         	builder.append(" - [accent]" + team.name + "[]");
                         	if (!team.cores().isEmpty()) builder.append(" | [green]" + team.cores().size + "[] core(s) found");
                         	builder.append("\n");
                         }
                         player.sendMessage(builder.toString());
-                        return;
+                        return;   
+                    default: 
+                    	err(player, "Invalid arguments");
+                    	return;
+                    
                 }
                 if(retTeam.cores().isEmpty()) {
                 	warn(player,"This team has no core!");
@@ -463,23 +536,6 @@ public class moreCommandsPlugin extends Plugin {
             } else err(player, "Other team has no core, can't change!");
         });
 
-        handler.<Player>register("spectate", "Enter/leave spectate mode", (args, player) -> {
-        	if (!adminCheck(player)) return;
-            
-            if(rememberSpectate.containsKey(player)){
-                player.team(rememberSpectate.get(player));
-                Call.setPlayerTeamEditor(player, rememberSpectate.get(player));
-                rememberSpectate.remove(player);
-                player.sendMessage("[gold]PLAYER MODE[]");
-            }else{
-                rememberSpectate.put(player, player.unit().team);
-                player.team(Team.all[8]);
-                Call.setPlayerTeamEditor(player, Team.all[8]);
-                player.unit().kill();
-                player.sendMessage("[green]SPECTATE MODE[] \nuse /team or /spectate to go back to player mode.");
-            }
-        });
-        
         handler.<Player>register("am", "<message...>", "Send a message as admin", (arg, player) -> {
         	if (!adminCheck(player)) return;
         	Call.sendMessage(arg[0], "[scarlet]<Admin>[]" + NetClient.colorizeName(player.id, player.name), player);
@@ -537,7 +593,7 @@ public class moreCommandsPlugin extends Plugin {
         	if (!adminCheck(player)) return;
             
         	if (arg.length == 0) player.unit().kill();
-            else {
+            else { 
                 Player other = Groups.player.find(p -> p.name().equalsIgnoreCase(arg[0]));
                 if (other != null) other.unit().kill();
                 else player.sendMessage("[scarlet]This player doesn't exist or not connected!");
@@ -547,7 +603,10 @@ public class moreCommandsPlugin extends Plugin {
 
         handler.<Player>register("core", "<small|meduim|big>", "Spawn a core to your corrdinate", (arg, player) -> {
         	if (!adminCheck(player)) return;
-
+        	if(rememberSpectate.containsKey(player)) {
+        		err(player, "You can't build a core in vanish mode!");
+        		return;
+        	}
         	warn(player, "This will destroy all the blocks which will be hampered by the construction of the core.");
         	
         	Block core;
@@ -560,117 +619,217 @@ public class moreCommandsPlugin extends Plugin {
         	}
 
             Call.constructFinish(player.tileOn(), core, player.unit(), (byte)0, player.team(), false);
-            String end = player.tileOn().block() == core ? "[green]Core build." : "[scarlet]Error: Core not build.";
-            player.sendMessage(end);
+            player.sendMessage(player.tileOn().block() == core ? "[green]Core build." : "[scarlet]Error: Core not build.");
         });
         
-        handler.<Player>register("tp", "<name|x,y> [to_name|x,y]", "Teleport to position or player (replace all spaces with '_' in the name)", (arg, player) -> {
+        handler.<Player>register("tp", "<name|x,y> [to_name|x,y]", "Teleport to position or player *", (arg, player) -> {
         	if (!adminCheck(player)) return;
-            
-        	int x = 0, y = 0, to_x = 0, to_y = 0;
-        	boolean foundName = false, foundToName = false;
+        	
+        	int x, y;
         	String[] __temp__;
-            ObjectSet<PlayerInfo> name = netServer.admins.findByName(arg[0]);
-            ObjectSet<PlayerInfo> toName = netServer.admins.findByName("");
-            NetConnection playerCon = player.con;
+            Player name = Groups.player.find(p -> p.name().equalsIgnoreCase(arg[0])), toName;
+            NetConnection playerCon;
             
-            if (arg.length == 2) toName = netServer.admins.findByName(arg[1]);
-
-            if (name.size == 0) name = netServer.admins.findByName(arg[0].replaceAll("_", " "));
-            if (toName.size == 0 && arg.length == 2) toName = netServer.admins.findByName(arg[1].replaceAll("_", " "));
             
-            if (name.size > 0 || toName.size > 0) {
-            	for (Player pPos : Groups.player) {
-            		for (PlayerInfo p : name) {
-            			if (p.id.equals(pPos.uuid())) {
-            				playerCon = pPos.con;
-            				x = Math.round(pPos.x/8);
-            				y = Math.round(pPos.y/8);
-            				foundName = true;
-            				break;
-            			}
-            		}
-
-            		for (PlayerInfo to_p : toName) {
-            			if (to_p.id.equals(pPos.uuid())) {
-            				to_x = Math.round(pPos.x/8);
-            				to_y = Math.round(pPos.y/8);
-            				foundToName = true;
-            				break;
-            			}
-            		}
-            	}
-            	if (arg.length == 2 && toName.size == 0) {
+            if (name == null) name = Groups.player.find(p -> p.name().equalsIgnoreCase(arg[0].replaceAll("_", " ")));
+			if (name == null) {
+				try {
+        			__temp__ = arg[0].split(",");
+        			x = Integer.parseInt(__temp__[0]);
+        			y = Integer.parseInt(__temp__[1]);
+        		
+        			if (__temp__.length > 2) {
+        				err(player, "Wrong coordinates!");
+        				return;
+        			}
+        		} catch (NumberFormatException e) {
+        			err(player, "Player [orange]" + arg[0] + "[] doesn't exist or not connected!");
+    				return;
+        		} catch (ArrayIndexOutOfBoundsException e) {
+        			err(player, "Wrong coordinates!");
+        			return;
+        		}
+				
+				if (arg.length == 2) {
+					player.sendMessage("[scarlet]Cannot teleport Coordinates to a Coordinates or Coordinates to a player! [lightgray]It's not logic XD.");
+            		return;
+				} else playerCon = player.con;
+				
+            } else {
+            	playerCon = name.con;
+            	x = Math.round(name.x/8);
+				y = Math.round(name.y/8);
+            }
+            
+			if (arg.length == 2) {
+            	toName = Groups.player.find(p -> p.name().equalsIgnoreCase(arg[1]));
+            	
+            	if (toName == null) Groups.player.find(p -> p.name().equalsIgnoreCase(arg[1].replaceAll("_", " ")));
+            	if (toName == null) {
             		try {
             			__temp__ = arg[1].split(",");
-            			to_x = Integer.parseInt(__temp__[0]);
-            			to_y = Integer.parseInt(__temp__[1]);
+            			x = Integer.parseInt(__temp__[0]);
+            			y = Integer.parseInt(__temp__[1]);
             		
             			if (__temp__.length > 2) {
             				err(player, "Wrong coordinates!");
             				return;
             			}
-            			foundToName = true;
             		} catch (NumberFormatException e) {
-            			err(player, "Player doesn't exist or wrong coordinates!");
-            			return;
+            			err(player, "Player [orange]" + arg[1] + "[] doesn't exist or not connected!");
+        				return;
             		} catch (ArrayIndexOutOfBoundsException e) {
             			err(player, "Wrong coordinates!");
             			return;
             		}
-            	}
-            } else {
-            	try {
-            		__temp__ = arg[0].split(",");
-            		x = Integer.parseInt(__temp__[0]);
-            		y = Integer.parseInt(__temp__[1]);
-            		
-            		if (__temp__.length > 2) {
-            			err(player, "Wrong coordinates!");
-                		return;
-            		}
-            		foundName = true;
-            	} catch (NumberFormatException e) {
-            		err(player, "Player doesn't exist or wrong coordinates!");
-            		return;
-            	} catch (ArrayIndexOutOfBoundsException e) {
-            		err(player, "Wrong coordinates!");
-            		return;
-            	}
-            }
+
+            	} else {
+            		x = Math.round(toName.x/8);
+    				y = Math.round(toName.y/8);
+                }
+            } else toName = null;
             
-            if (foundName == false && name.size != 0) {
-            		player.sendMessage("[scarlet]Player [orange]" + arg[0] + "[] not connected!");
-    				return;
-            } else if (foundToName == false && arg.length == 2 && toName.size != 0) {
-            	player.sendMessage("[scarlet]Player [orange]" + arg[1] + "[] not connected!");
-				return;
-            }
-            
-            if (arg.length == 2) {
-            	if (!((name.size != 0 && toName.size != 0) || (name.size != 0 && toName.size == 0))) {
-            		player.sendMessage("[scarlet]Cannot teleport Coordinates to a Coordinates or Coordinates to a player! [lightgray]It's not logic XD.");
-            		return;
-            	}
-            	x = to_x;
-            	y = to_y;
-            } else {
-            	playerCon = player.con;
-            }	
-            
+			
             if (x > world.width() || x < 0 || y > world.height() || y < 0) {
-            		player.sendMessage("[scarlet]Coordinates too large. Max: [orange]" + world.width() + "[]x[orange]" + world.height() + "[]. Min : [orange]0[]x[orange]0[].");
-            		return;
+            	player.sendMessage("[scarlet]Coordinates too large. Max: [orange]" + world.width() + "[]x[orange]" + world.height() + "[]. Min : [orange]0[]x[orange]0[].");
+            	return;
             }
-            
-            
+
             playerCon.player.unit().set(x*8, y*8);
-        	Call.setPosition(playerCon, x*8, y*8);
-        	playerCon.player.snapSync();
-           
+            Call.setPosition(playerCon, x*8, y*8);
+            playerCon.player.snapSync();
+            
             if (arg.length == 2) player.sendMessage("You teleported [accent]" + playerCon.player.name + "[] to [accent]" + x + "[]x[accent]" + y + "[].");
             else player.sendMessage("You teleported to [accent]" + x + "[]x[accent]" + y + "[].");
+            
+            try { Thread.sleep(500);
+			} catch (InterruptedException e) { e.printStackTrace(); }
         });  
+        
+        handler.<Player>register("spawn", "<unit> [x,y|username] [teamname] [count]", "Spawn a unit (you can use '~' for your local team or coordinates). *", (arg, player) -> {
+        	if (!adminCheck(player)) return;
+        	
+        	StringBuilder builder = new StringBuilder();
+        	UnitType unit = content.units().find(b -> b.name.equals(arg[0]));
+        	Player target;
+        	Team team;
+        	int count, x, y;
+        	
+        	if (arg.length >= 2) {
+        		if (arg[1].equals("~")) target = player;
+        		else target = Groups.player.find(p -> p.name().equals(arg[1]));
+        		if (target == null) Groups.player.find(p -> p.name().equals(arg[1].replaceAll("_", " ")));
+        		
+        		if (target == null) {
+        			target = player;
+        			try {
+        				String __temp__[] = arg[1].split(",");
+        				x = Integer.parseInt(__temp__[0])*8;
+        				y = Integer.parseInt(__temp__[1])*8;
+            		
+        				if (__temp__.length > 2) {
+        					err(player, "Wrong coordinates!");
+        					return;
+        				}
+        			} catch (NumberFormatException e) {
+                		err(player, "Player doesn't exist or wrong coordinates!");
+                		return;
+                	} catch (ArrayIndexOutOfBoundsException e) {
+                		err(player, "Wrong coordinates!");
+                		return;
+                	}
+        		} else {
+        			x = Math.round(target.x);
+        			y = Math.round(target.y);
+        		}
+        	} else {
+        		target = player;
+        		x = Math.round(target.x);
+        		y = Math.round(target.y);
+        	}
+        	
+        	if (arg.length >= 3) {
+        		switch (arg[2]) {
+            		case "~":
+            			team = target.team();
+            			break;
+            		case "sharded":
+            			team = Team.sharded;
+            			break;
+            		case "blue":
+            			team = Team.blue;
+            			break;
+            		case "crux":
+            			team = Team.crux;
+            			break;
+            		case "derelict":
+            			team = Team.derelict;
+            			break;
+            		case "green":
+            			team = Team.green;
+            			break;
+            		case "purple":
+            			team = Team.purple;
+            			break;
+            		default:
+            			err(player, "available teams: ");
+            			for (Team teamList : Team.baseTeams) builder.append(" - [accent]" + teamList.name + "[]\n");
+            			player.sendMessage(builder.toString());
+            			return;
+        		}
+        	} else team = player.team();
+        	
+            if (arg.length == 4) {
+            	try {
+            		count = Integer.parseInt(arg[3]);
+            	} catch (NumberFormatException e) {
+            		err(player, "Count must be number!");
+            		return;
+            	}
+            } else count = 1;
+            
+            if (unit != null) {
+                for (int i=0; i<count; i++) unit.spawn(team, x, y);
+                
+                player.sendMessage("[green]You are spawning [accent]" + count + " " + unit + " []for [accent]" + team + " []team at [orange]" + x/8 + "[white],[orange]" + y/8);
+            } else {
+            	builder.append("[scarlet]Units:[]");
+            	for (UnitType unitName : content.units()) builder.append(" [accent]" + unitName.name + "[],");          
+                player.sendMessage(builder.toString());
+            }
+        });
+        
+        handler.<Player>register("creative", "[username|ID...]", "Instantly build/destroy the desired structures.", (arg, player) -> {
+        	if (!adminCheck(player)) return;
+        	
+        	Player target;
+        	if (arg.length == 0) target = player;
+        	else {
+        		target = Groups.player.find(p -> p.name().equals(arg[0]));
+        		if (target == null) target = Groups.player.find(p -> p.uuid().equals(arg[0]));
+        	}
+        	
+        	if (target != null) {
+        		if (creativePlayers.containsKey(target)) {
+        			target.unit().health = creativePlayers.get(target);
+        			creativePlayers.remove(target);
+        		} else {
+        			creativePlayers.put(target, (int) player.unit().health);
+        			target.unit().health = Integer.MAX_VALUE;
+        		}
+        		
+        	} else {
+        		player.sendMessage("[scarlet]This player doesn't exist or not connected!");
+        		return;
+        	}
+        		
+        	if (arg.length == 0) player.sendMessage("[green]Creative mode is " + (creativePlayers.containsKey(target) ? "enabled" : "disabled"));
+        	else {
+        		player.sendMessage("[green]Creative mode is " + (creativePlayers.containsKey(target) ? "enabled" : "disabled") + (arg.length == 0 ? "" : " for [accent]" + target.name));
+        		target.sendMessage("[green]" + (creativePlayers.containsKey(target) ? "You've been put into creative mode" : "You have been removed from creative mode") + " by [accent]"+ player.name);
+        	}
+        	
+        });
         
         handler.<Player>register("tchat", "<on|off>", "Enabled/disabled the tchat", (arg, player) -> {
         	if (!adminCheck(player)) return;
@@ -754,18 +913,7 @@ public class moreCommandsPlugin extends Plugin {
             if (netServer.admins.unbanPlayerIP(arg[0]) || netServer.admins.unbanPlayerID(arg[0])) info(player, "Unbanned player: [accent]%s", arg[0]);
             else err(player, "That IP/ID is not banned!");
         });
-/*        
-        handler.<Player>register("test", "test", (arg, player) -> {
-        	StringBuilder builder = new StringBuilder();
-        	
-        	for (int i=0; i<100; i++) {
-        		builder.append(i + "\n");
-        	}
-        	Call.infoMessage(player.con, "mmmmmmfmmmmmmmmmmmmmm7mmmmmmmmmmm5mmmmmmmmmmmmmmmmmmmm3mmmmmmmmmmmmmmmmmmm2mmmmmmmmm");
-        	Call.infoMessage(player.con, builder.toString());
-        	Call.infoPopup("[scarlet]test test test", 3, 5, 100, 100, 100, 100);
-        });
-*/
+        
     }
 
     private void err(Player player, String fmt, Object... msg) { PlayerFunctions.err(player, fmt, msg); }
