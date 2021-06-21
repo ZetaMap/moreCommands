@@ -11,7 +11,7 @@
 * `/help [page]` Recreate /help to display only commands related to your rank.
 
 ### Admin Only Commands
-* `/team [teamname|list|vanish]` This command lets admins change teams.
+* `/team [teamname|list|vanish] [username...]` This command lets admins change teams.
 * `/am <message...>` Send a message as admin.
 * `/kick <ID|username...>` Kick a person by name or ID.
 * `/pardon <ID>` Pardon a votekicked player by ID and allow them to join again.
@@ -23,7 +23,7 @@
 * `/core <small|medium|big>` Spawn a core to your corrdinate.
 * `/tchat <on|off>` Enabled/disabled the tchat.
 * `/spawn <unit> [x,y|username] [teamname] [count]` Spawn a unit (you can use '~' for your local team or coordinates).
-* `/creative [username|ID...]` Instantly build/destroy the desired structures.
+* `/godmode <on|off> [username|ID...]` Instantly build/destroy the desired structures.
 
 ### Server Commands
 * `unban-all [y|n]` Unban all ID and IP.
