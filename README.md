@@ -23,7 +23,7 @@
 * `/core <small|medium|big>` Spawn a core to your corrdinate.
 * `/tchat <on|off>` Enabled/disabled the tchat.
 * `/spawn <unit> [x,y|username] [teamname] [count]` Spawn a unit (you can use '~' for your local team or coordinates).
-* `/godmode <on|off> [username|ID...]` Instantly build/destroy the desired structures.
+* `/godmode [username|ID...]` Instantly build/destroy the desired structures.
 
 ### Server Commands
 * `unban-all [y|n]` Unban all ID and IP.
