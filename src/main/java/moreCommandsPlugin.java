@@ -645,15 +645,17 @@ public class moreCommandsPlugin extends Plugin {
             }
             
             if ((boolean) Config.valueOf("strict").get()) {
-            	Config.valueOf("strict").set(false);
-            	target.unit().set(co[0]*8, co[1]*8);
-            	Call.setPosition(target.con, co[0]*8, co[1]*8);
-            	Config.valueOf("strict").set(true);
+                Config.valueOf("strict").set(false);
+                Core.settings.forceSave();
+                player.unit().set(x, y);
+                Call.setPosition(player.con, x, y);
+                Config.valueOf("strict").set(true);
+                Core.settings.forceSave();
             } else {
-            	target.unit().set(co[0]*8, co[1]*8);
-            	Call.setPosition(target.con, co[0]*8, co[1]*8);
+                player.unit().set(x, y);
+                Call.setPosition(player.con, x, y);
             }
-            target.snapSync();
+            player.snapSync();
             
             if (arg.length == 2) player.sendMessage("[green]You teleported [accent]" + target.name + "[green] to [accent]" + co[0] + "[green]x[accent]" + co[1] + "[green].");
             else player.sendMessage("[green]You teleported to [accent]" + co[0] + "[]x[accent]" + co[1] + "[].");
@@ -750,7 +752,7 @@ public class moreCommandsPlugin extends Plugin {
             }
         });
         
-        handler.<Player>register("godmode", "[username|ID...]", "[scarlet][God][]: I'm divine!", (arg, player) -> {
+        handler.<Player>register("godmode", "[username|ID...]", "[scarlet][God][]: [gold]I'm divine!", (arg, player) -> {
         	if (!Players.adminCheck(player)) return;
         	
         	Player target;
