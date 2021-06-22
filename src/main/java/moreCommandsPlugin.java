@@ -20,8 +20,8 @@ import arc.util.Log;
 import arc.util.Strings;
 import arc.util.Timer.Task;
 
-import functions.PlayerFunctions;
-import functions.TempPlayerData;
+import functions.TempData;
+import functions.Players;
 
 import mindustry.content.Blocks;
 import mindustry.core.NetClient;
@@ -37,8 +37,8 @@ import mindustry.gen.Groups;
 import mindustry.gen.Player;
 import mindustry.maps.Map;
 import mindustry.mod.Plugin;
+import mindustry.net.Administration.Config;
 import mindustry.net.Administration.PlayerInfo;
-import mindustry.net.NetConnection;
 import mindustry.net.Packets.KickReason;
 import mindustry.type.UnitType;
 import mindustry.world.Block;
@@ -50,13 +50,13 @@ public class moreCommandsPlugin extends Plugin {
     private HashSet<String> votesVNW = new HashSet<>(), votesRTV = new HashSet<>();
     private ObjectMap<Player, Team> rememberSpectate = new ObjectMap<>();
     private static ArrayList<String> rainbowedPlayers = new ArrayList<>();
-    private static ObjectMap<Player, Integer> creativePlayers = new ObjectMap<>();
+    private static ObjectMap<Player, Integer> godmodPlayers = new ObjectMap<>();
     private boolean confirm = false, autoPause = false, tchat = true;
     
     public void init() { netServer.admins.addChatFilter((player, message) -> null); } //delete the tchat
 	public moreCommandsPlugin() {
-    	Events.on(PlayerJoin.class, e -> TempPlayerData.tempPlayerDatas.put(e.player.uuid(), new TempPlayerData(0, e.player.name, e.player.id))); // add player in TempPlayerData
-		Events.on(PlayerLeave.class, e -> TempPlayerData.tempPlayerDatas.remove(e.player.uuid())); // remove player in TempPlayerData
+    	Events.on(PlayerJoin.class, e -> TempData.put(e.player)); // add player in TempPlayerData
+		Events.on(PlayerLeave.class, e -> TempData.remove(e.player)); // remove player in TempPlayerData
 
     	//clear VNW & RTV votes on game over
         Events.on(GameOverEvent.class, e -> {
@@ -64,33 +64,34 @@ public class moreCommandsPlugin extends Plugin {
             votesRTV.clear();
         });
         
-        //kick the player if there is [Server] or [server] in his nickname
         Events.on(PlayerConnect.class, e -> {
-        	if (e.player.name.contains("[Server]") || e.player.name.contains("[server]")) {
-        		e.player.kick("Please don't use [Server] or [server] in your username!");
-        		return;
+        	//kick the player if there is [Server] or [server] in his nickname
+        	if (e.player.name.contains("[Server]") || e.player.name.contains("[server]")) e.player.kick("Please don't use [Server] or [server] in your username!");
+        	
+        	//prevent to duplicate nicknames
+        	for (Player p : Groups.player) {
+        		if (Strings.stripColors(p.name) == Strings.stripColors(e.player.name)) e.player.kick(KickReason.nameInUse);
         	}
         });
 
-        //unpause the game if one player is connected.
+        //unpause the game if one player is connected
         Events.on(PlayerJoin.class, e -> {
         	if (Groups.player.size() >= 1 && autoPause) {
         		state.serverPaused = false;
         		Log.info("auto-pause: " + Groups.player.size() + " player connected -> Game unpaused...");
-        		Call.sendMessage("auto-pause: " + Groups.player.size() + " player connected -> Game unpaused...");
+        		Call.sendMessage("[scarlet][Server][]: Game unpaused...");
         	}
         });
-
-        //pause the game if no one is connected. Remove the rainbow and spectate mode of this player.
+        
         Events.on(PlayerLeave.class, e -> {
+        	//pause the game if no one is connected
         	if (Groups.player.size()-1 < 1 && autoPause) {
         		state.serverPaused = true;
         		Log.info("auto-pause: " + (Groups.player.size()-1) + " player connected -> Game paused...");
-        		Call.sendMessage("auto-pause: " + (Groups.player.size()-1) + " player connected -> Game paused...");
         	}
 
+        	//remove the rainbow and spectate mode of this player
         	if(rainbowedPlayers.contains(e.player.uuid())) rainbowedPlayers.remove(e.player.uuid());
-        	
         	if(rememberSpectate.containsKey(e.player)) rememberSpectate.remove(e.player);
         });
 
@@ -111,14 +112,14 @@ public class moreCommandsPlugin extends Plugin {
     	   }
         }); 
         
-        //for creative player
+        //for players in god mode 
         Events.on(BlockBuildBeginEvent.class, (e) -> {
         	Player player = e.unit.getPlayer();
         	
         	if (player != null) {
-        		player.sendMessage(e.tile.block().name+"");
+        		player.sendMessage(e.tile.block().health+"");
         		
-        		if (creativePlayers.containsKey(player)) {
+        		if (godmodPlayers.containsKey(player)) {
         			if (e.breaking) Call.deconstructFinish(e.tile, e.tile.block(), e.unit);
         			else Call.constructFinish(e.tile, e.tile.block(), e.unit, (byte)0, e.team, false);
         		}
@@ -205,36 +206,6 @@ public class moreCommandsPlugin extends Plugin {
         		default: Log.err("Invalid arguments. \n - The tchat is currently @.", tchat ? "enabled" : "disabled");
         	}
         });
-/*        
-        handler.register("strict-nicknames", "<on|off>", "Automatically replace all spaces in nicknames with '_'", arg -> {
-        	if(state.is(State.playing)){
-                Log.err("Already hosting. Type 'stop' to stop hosting first.");
-                return;
-            }
-        	
-        	switch (arg[0]) {
-    			case "on":
-    				if (strictName) {
-    					Log.err("Disabled first!");
-    					return;
-    				}
-    				strictName = true;
-    				Log.info("Strict names is enabled ... All spaces in nicknames will be replaced by '_'");
-    				break;
-    		
-    			case "off":
-    				if (!strictName) {
-    					Log.err("Enabled first!");
-    					return;
-    				}
-    				strictName = false;
-    				Log.info("Strict names is disabled ... Nicknames are no longer subject to the rule");
-    				break;
-    		
-    			default: Log.err("Invalid arguments. \n - Strict names is currently @.", strictName ? "enabled" : "disabled");
-    		}
-        });
-*/
     }
     
     //register commands that player can invoke in-game
@@ -247,7 +218,7 @@ public class moreCommandsPlugin extends Plugin {
                 return;
             }
         	
-        	int adminCommands = player.admin ? 0 : 12;
+        	int adminCommands = player.admin ? 0 : 13;
         	int commandsPerPage = 8;
             int page = arg.length > 0 ? Strings.parseInt(arg[0]) : 1;
             int pages = Mathf.ceil(((float)handler.getCommandList().size - adminCommands) / commandsPerPage);
@@ -269,7 +240,7 @@ public class moreCommandsPlugin extends Plugin {
             player.sendMessage(result.toString());
         });
     	
-    	handler.<Player>register("*","If you see an order with '*' in its description, it means you can replace all spaces with '_' in the name.", (args, player) -> {
+    	handler.<Player>register("*","If you see an order with '*' in its description, it means you can replace all spaces with '_' in the name.", (arg, player) -> {
             player.sendMessage("If you see an order with '*' in its description, it means you can replace all spaces with '_' in the name.");
          });
          
@@ -278,18 +249,22 @@ public class moreCommandsPlugin extends Plugin {
            player.sendMessage("You're a [sky]" + player.unit().type().name + "[].");
         });
         
-        handler.<Player>register("dm", "<ID|username> <message...>","Send a message to a player *", (args, player) -> {
-        	Player target = Groups.player.find(p -> p.name().equalsIgnoreCase(args[0]) || p.uuid().equalsIgnoreCase(args[0]));
-        	if (target == null) target = Groups.player.find(p -> p.name().equalsIgnoreCase(args[0].replaceAll("_", " ")));
+        handler.<Player>register("dm", "<ID|username> <message...>","Send a message to a player *", (arg, player) -> {
+        	Player target = Players.find(arg[0]);
         	
-            if(target == null) err(player, "Player not connected or doesn't exist!");
+            if(target == null) Players.err(player, "Player not connected or doesn't exist!");
             else {
-            	 player.sendMessage("\n[gold]Private Message: [sky]you[gold] --> [white]" + target.name + "[gold]\n--------------------------------\n[white]" + args[1]);
-            	 target.sendMessage("\n[gold]Private Message: [white]" + player.name + "[gold] --> [sky]you[gold]\n--------------------------------\n[white]" + args[1]);
+            	 player.sendMessage("\n[gold]Private Message: [sky]you[gold] --> [white]" + target.name + "[gold]\n--------------------------------\n[white]" + arg[1]);
+            	 target.sendMessage("\n[gold]Private Message: [white]" + player.name + "[gold] --> [sky]you[gold]\n--------------------------------\n[white]" + arg[1]);
             }
          });
 
         handler.<Player>register("maps", "[page]", "List all maps on server", (arg, player) -> {
+        	if(arg.length > 0 && !Strings.canParseInt(arg[0])){
+                player.sendMessage("[scarlet]'page' must be a number.");
+                return;
+            }
+        	
         	int page = arg.length > 0 ? Strings.parseInt(arg[0]) : 1;
 			int lines = 8;
             Seq<Map> list = maps.all();
@@ -364,7 +339,7 @@ public class moreCommandsPlugin extends Plugin {
             		infos = netServer.admins.findByName(arg[0]);
             		type = true;
             	} else { 
-            		err(player, "You don't have the permission to use arguments!");
+            		Players.err(player, "You don't have the permission to use arguments!");
             		return;
             	}
         	} else infos = netServer.admins.findByName(player.name);
@@ -402,7 +377,7 @@ public class moreCommandsPlugin extends Plugin {
                 	else player.sendMessage(builder.toString());
                 	builder = new StringBuilder();
                 }
-           } else err(player, "This player doesn't exist!");
+           } else Players.err(player, "This player doesn't exist!");
         });
         
         handler.<Player>register("rainbow", "[ID]", "[#ff0000]R[#ff7f00]A[#ffff00]I[#00ff00]N[#0000ff]B[#2e2b5f]O[#8B00ff]W[#ff0000]![#ff7f00]!", (arg, player) -> {
@@ -410,27 +385,23 @@ public class moreCommandsPlugin extends Plugin {
         		if(rainbowedPlayers.contains(player.uuid())) {
         			player.sendMessage("[sky]Rainbow effect toggled off.");
         			rainbowedPlayers.remove(player.uuid());
-        			player.name = TempPlayerData.tempPlayerDatas.get(player.uuid()).realName;
+        			player.name = TempData.get(player).realName;
         		} else {
         			player.sendMessage("[sky]Rainbow effect toggled on.");
         			rainbowedPlayers.add(player.uuid());
-        			TempPlayerData pData = TempPlayerData.tempPlayerDatas.get(player.uuid());
+        			TempData pData = TempData.get(player);
                
         			Thread rainbowLoop = new Thread() {
         				public void run() {
         					while(rainbowedPlayers.contains(player.uuid())) {
         						try {
-        							Integer hue = pData.hue;
-                                    if (hue < 360) hue++;
+        							int hue = pData.hue;
+                                    if (hue < 360) hue+=5;
                                     else hue = 0;
-                                   
-                                    String hex = "[#" + Integer.toHexString(Color.getHSBColor(hue / 360f, 1f, 1f).getRGB()).substring(2) + "]";
-                                    
-                                    
-                                    player.name = hex + pData.nameNotColor;
+
+                                    player.name = putColor(pData.normalizedName, hue);
                                     pData.setHue(hue);
-                                    TempPlayerData.tempPlayerDatas.replace(player.uuid(), pData);
-//##################################################################################################################
+                                    
                                     Thread.sleep(50);
         						} catch (InterruptedException e) {
                             	    e.printStackTrace();
@@ -442,38 +413,49 @@ public class moreCommandsPlugin extends Plugin {
         		}
         	} else {
         		if (player.admin) {
-        			warn(player, "This will remove the rainbow from the person matching the argument.");
+        			Players.warn(player, "This will remove the rainbow from the person matching the argument.");
         			
-        			Player rPlayer = Groups.player.find(p -> p.uuid().equalsIgnoreCase(arg[0]));
+        			Player rPlayer = Players.find(arg[0]);
         			
         			if(rPlayer != null && rainbowedPlayers.contains(arg[0])) {
             			rainbowedPlayers.remove(arg[0]);
-            			rPlayer.name = TempPlayerData.tempPlayerDatas.get(arg[0]).realName;
+            			rPlayer.name = TempData.get(rPlayer).realName;
             			player.sendMessage("[sky]Rainbow effect toggled off for the player [accent]" + rPlayer.name + "[].");
-        			} else err(player, "This player not have the rainbow or doesn't exist.");
+        			} else Players.err(player, "This player not have the rainbow or doesn't exist.");
         			
-        		} else err(player, "You don't have the permission to use arguments!");
+        		} else Players.err(player, "You don't have the permission to use arguments!");
         	}
         	
         });
        
-        handler.<Player>register("team", "[teamname|list|vanish]","change team", (args, player) ->{
+        handler.<Player>register("team", "[teamname|list|vanish] [username...]","change team", (args, player) ->{
             if(!player.admin()){
                 player.sendMessage("[scarlet]Only admins can change team !");
                 return;
             }
             StringBuilder builder = new StringBuilder();
+            coreTeamReturn ret = null;
+            Player target;
             
-            if(rememberSpectate.containsKey(player)){
+            if (args.length == 2) {
+            	target = Players.find(args[1]);
+            	
+            	if (target == null) {
+            		Players.err(player, "This player doesn't exist or not connected!");
+            		return;
+            	}
+            } else target = player;
+            
+            if(rememberSpectate.containsKey(target)){
                 player.sendMessage(">[orange] transferring back to last team");
-                player.team(rememberSpectate.get(player));
-                Call.setPlayerTeamEditor(player, rememberSpectate.get(player));
-                rememberSpectate.remove(player);
-                player.name = TempPlayerData.tempPlayerDatas.get(player.uuid()).realName;
+                target.team(rememberSpectate.get(target));
+                Call.setPlayerTeamEditor(target, rememberSpectate.get(target));
+                rememberSpectate.remove(target);
+                target.name = TempData.get(target).realName;
                 return;
             }
-            coreTeamReturn ret = null;
-            if(args.length == 1){
+
+            if(args.length >= 1){
                 Team retTeam;
                 switch (args[0]) {
                 	case "sharded":
@@ -496,12 +478,12 @@ public class moreCommandsPlugin extends Plugin {
                         break;
                     
                     case "vanish":
-                    	rememberSpectate.put(player, player.unit().team);
-                        player.team(Team.all[8]);
-                        Call.setPlayerTeamEditor(player, Team.all[8]);
-                        player.unit().kill();
+                    	rememberSpectate.put(target, target.unit().team);
+                        target.team(Team.all[8]);
+                        Call.setPlayerTeamEditor(target, Team.all[8]);
+                        target.unit().kill();
                         player.sendMessage("[green]VANISH MODE[] \nuse /team to go back to player mode.");
-                        player.name = "";
+                        target.name = "";
                     	return;
                     case "list":
                     	player.sendMessage("available teams:");
@@ -514,35 +496,35 @@ public class moreCommandsPlugin extends Plugin {
                         player.sendMessage(builder.toString());
                         return;   
                     default: 
-                    	err(player, "Invalid arguments");
+                    	Players.err(player, "[lightgray]Invalid arguments");
                     	return;
                     
                 }
                 if(retTeam.cores().isEmpty()) {
-                	warn(player,"This team has no core!");
-                	player.team(retTeam);
+                	Players.warn(player,"This team has no core!");
+                	target.team(retTeam);
                 	player.sendMessage("> You changed to team [sky]" + retTeam);
                 	return;
                 }
                 
                 ret =  new coreTeamReturn(retTeam);
-            } else ret = getPosTeamLoc(player);
+            } else ret = getPosTeamLoc(target);
 
             //move team mechanic
             if(ret != null) {
-                Call.setPlayerTeamEditor(player, ret.team);
-                player.team(ret.team);
+                Call.setPlayerTeamEditor(target, ret.team);
+                target.team(ret.team);
                 player.sendMessage("> You changed to team [sky]" + ret.team);
-            } else err(player, "Other team has no core, can't change!");
+            } else Players.err(player, "Other team has no core, can't change!");
         });
 
         handler.<Player>register("am", "<message...>", "Send a message as admin", (arg, player) -> {
-        	if (!adminCheck(player)) return;
+        	if (!Players.adminCheck(player)) return;
         	Call.sendMessage(arg[0], "[scarlet]<Admin>[]" + NetClient.colorizeName(player.id, player.name), player);
         });
         
         handler.<Player>register("players", "<all|online|ban>", "Gives the list of players according to the type of filter given", (arg, player) -> {
-        	if (!adminCheck(player)) return;
+        	if (!Players.adminCheck(player)) return;
         	
         	int size = 0;
         	StringBuilder builder = new StringBuilder();
@@ -582,7 +564,7 @@ public class moreCommandsPlugin extends Plugin {
             		}
             		break;
             	
-            	default: err(player, "Invalid usage:[lightgray] Invalid arguments.");
+            	default: Players.err(player, "Invalid usage:[lightgray] Invalid arguments.");
             }
             
             if (size > 50) Call.infoMessage(player.con, builder.toString());
@@ -590,11 +572,11 @@ public class moreCommandsPlugin extends Plugin {
         });
 
         handler.<Player>register("kill", "[username...]", "Kill a player", (arg, player) -> {
-        	if (!adminCheck(player)) return;
+        	if (!Players.adminCheck(player)) return;
             
         	if (arg.length == 0) player.unit().kill();
             else { 
-                Player other = Groups.player.find(p -> p.name().equalsIgnoreCase(arg[0]));
+                Player other = Players.find(arg[0]);
                 if (other != null) other.unit().kill();
                 else player.sendMessage("[scarlet]This player doesn't exist or not connected!");
             }
@@ -602,19 +584,19 @@ public class moreCommandsPlugin extends Plugin {
         
 
         handler.<Player>register("core", "<small|meduim|big>", "Spawn a core to your corrdinate", (arg, player) -> {
-        	if (!adminCheck(player)) return;
+        	if (!Players.adminCheck(player)) return;
         	if(rememberSpectate.containsKey(player)) {
-        		err(player, "You can't build a core in vanish mode!");
+        		Players.err(player, "You can't build a core in vanish mode!");
         		return;
         	}
-        	warn(player, "This will destroy all the blocks which will be hampered by the construction of the core.");
+        	Players.warn(player, "This will destroy all the blocks which will be hampered by the construction of the core.");
         	
         	Block core;
         	if (arg[0].equals("small")) core = Blocks.coreShard;
         	else if (arg[0].equals("medium")) core = Blocks.coreFoundation; 
         	else if (arg[0].equals("big")) core = Blocks.coreNucleus;
         	else {
-        		err(player, "Core type not found:[] Please use arguments small, medium, big.");
+        		Players.err(player, "Core type not found:[] Please use arguments small, medium, big.");
                 return;
         	}
 
@@ -623,91 +605,62 @@ public class moreCommandsPlugin extends Plugin {
         });
         
         handler.<Player>register("tp", "<name|x,y> [to_name|x,y]", "Teleport to position or player *", (arg, player) -> {
-        	if (!adminCheck(player)) return;
+        	if (!Players.adminCheck(player)) return;
         	
-        	int x, y;
-        	String[] __temp__;
-            Player name = Groups.player.find(p -> p.name().equalsIgnoreCase(arg[0])), toName;
-            NetConnection playerCon;
+        	int[] co;
+            Player target;
+            Object[] result = tpSearsh(arg[0], player);
             
-            
-            if (name == null) name = Groups.player.find(p -> p.name().equalsIgnoreCase(arg[0].replaceAll("_", " ")));
-			if (name == null) {
-				try {
-        			__temp__ = arg[0].split(",");
-        			x = Integer.parseInt(__temp__[0]);
-        			y = Integer.parseInt(__temp__[1]);
-        		
-        			if (__temp__.length > 2) {
-        				err(player, "Wrong coordinates!");
-        				return;
-        			}
-        		} catch (NumberFormatException e) {
-        			err(player, "Player [orange]" + arg[0] + "[] doesn't exist or not connected!");
-    				return;
-        		} catch (ArrayIndexOutOfBoundsException e) {
-        			err(player, "Wrong coordinates!");
-        			return;
-        		}
-				
-				if (arg.length == 2) {
-					player.sendMessage("[scarlet]Cannot teleport Coordinates to a Coordinates or Coordinates to a player! [lightgray]It's not logic XD.");
-            		return;
-				} else playerCon = player.con;
-				
-            } else {
-            	playerCon = name.con;
-            	x = Math.round(name.x/8);
-				y = Math.round(name.y/8);
+            if (result[0] == null && result[1] == null) return;
+            else {
+            	target = player;
+            	if (result[1] == null) {
+            		Player __temp__ = (Player) result[0];
+            		co = new int[]{(int) __temp__.x/8, (int) __temp__.y/8};
+            	} else co = (int[]) result[1];
             }
-            
-			if (arg.length == 2) {
-            	toName = Groups.player.find(p -> p.name().equalsIgnoreCase(arg[1]));
             	
-            	if (toName == null) Groups.player.find(p -> p.name().equalsIgnoreCase(arg[1].replaceAll("_", " ")));
-            	if (toName == null) {
-            		try {
-            			__temp__ = arg[1].split(",");
-            			x = Integer.parseInt(__temp__[0]);
-            			y = Integer.parseInt(__temp__[1]);
-            		
-            			if (__temp__.length > 2) {
-            				err(player, "Wrong coordinates!");
-            				return;
-            			}
-            		} catch (NumberFormatException e) {
-            			err(player, "Player [orange]" + arg[1] + "[] doesn't exist or not connected!");
-        				return;
-            		} catch (ArrayIndexOutOfBoundsException e) {
-            			err(player, "Wrong coordinates!");
-            			return;
-            		}
-
-            	} else {
-            		x = Math.round(toName.x/8);
-    				y = Math.round(toName.y/8);
-                }
-            } else toName = null;
-            
-			
-            if (x > world.width() || x < 0 || y > world.height() || y < 0) {
-            	player.sendMessage("[scarlet]Coordinates too large. Max: [orange]" + world.width() + "[]x[orange]" + world.height() + "[]. Min : [orange]0[]x[orange]0[].");
-            	return;
+            if (arg.length == 2) {
+            	target = (Player) result[0];
+            	
+            	if (result[1] == null) {
+					result =  tpSearsh(arg[1], player);
+					
+					if (result[0] == null && result[1] == null) return;
+		            else {
+		            	if (result[1] == null) {
+		            		Player __temp__ = (Player) result[0];
+		            		co = new int[]{(int) __temp__.x/8, (int) __temp__.y/8};
+		            	} else co = (int[]) result[1];
+		            }
+				} else {
+					player.sendMessage("[scarlet]Can't teleport a coordinate to a coordinate or to a player! [lightgray]It's not logic XD.");
+            		return;
+				}
             }
-
-            playerCon.player.unit().set(x*8, y*8);
-            Call.setPosition(playerCon, x*8, y*8);
-            playerCon.player.snapSync();
             
-            if (arg.length == 2) player.sendMessage("You teleported [accent]" + playerCon.player.name + "[] to [accent]" + x + "[]x[accent]" + y + "[].");
-            else player.sendMessage("You teleported to [accent]" + x + "[]x[accent]" + y + "[].");
+            if (co[0] > world.width() || co[0] < 0 || co[1] > world.height() || co[1] < 0) {
+                player.sendMessage("[scarlet]Coordinates too large. Max: [orange]" + world.width() + "[]x[orange]" + world.height() + "[]. Min : [orange]0[]x[orange]0[].");
+                return;
+            }
             
-            try { Thread.sleep(500);
-			} catch (InterruptedException e) { e.printStackTrace(); }
+            if ((boolean) Config.valueOf("strict").get()) {
+            	Config.valueOf("strict").set(false);
+            	target.unit().set(co[0]*8, co[1]*8);
+            	Call.setPosition(target.con, co[0]*8, co[1]*8);
+            	Config.valueOf("strict").set(true);
+            } else {
+            	target.unit().set(co[0]*8, co[1]*8);
+            	Call.setPosition(target.con, co[0]*8, co[1]*8);
+            }
+            target.snapSync();
+            
+            if (arg.length == 2) player.sendMessage("[green]You teleported [accent]" + target.name + "[green] to [accent]" + co[0] + "[green]x[accent]" + co[1] + "[green].");
+            else player.sendMessage("[green]You teleported to [accent]" + co[0] + "[]x[accent]" + co[1] + "[].");
         });  
         
         handler.<Player>register("spawn", "<unit> [x,y|username] [teamname] [count]", "Spawn a unit (you can use '~' for your local team or coordinates). *", (arg, player) -> {
-        	if (!adminCheck(player)) return;
+        	if (!Players.adminCheck(player)) return;
         	
         	StringBuilder builder = new StringBuilder();
         	UnitType unit = content.units().find(b -> b.name.equals(arg[0]));
@@ -717,25 +670,24 @@ public class moreCommandsPlugin extends Plugin {
         	
         	if (arg.length >= 2) {
         		if (arg[1].equals("~")) target = player;
-        		else target = Groups.player.find(p -> p.name().equals(arg[1]));
-        		if (target == null) Groups.player.find(p -> p.name().equals(arg[1].replaceAll("_", " ")));
+        		else target = Players.find(arg[1]);
         		
         		if (target == null) {
         			target = player;
         			try {
         				String __temp__[] = arg[1].split(",");
-        				x = Integer.parseInt(__temp__[0])*8;
-        				y = Integer.parseInt(__temp__[1])*8;
+        				x = Strings.parseInt(__temp__[0])*8;
+        				y = Strings.parseInt(__temp__[1])*8;
             		
         				if (__temp__.length > 2) {
-        					err(player, "Wrong coordinates!");
+        					Players.err(player, "Wrong coordinates!");
         					return;
         				}
         			} catch (NumberFormatException e) {
-                		err(player, "Player doesn't exist or wrong coordinates!");
+                		Players.err(player, "Player doesn't exist or wrong coordinates!");
                 		return;
                 	} catch (ArrayIndexOutOfBoundsException e) {
-                		err(player, "Wrong coordinates!");
+                		Players.err(player, "Wrong coordinates!");
                 		return;
                 	}
         		} else {
@@ -772,7 +724,7 @@ public class moreCommandsPlugin extends Plugin {
             			team = Team.purple;
             			break;
             		default:
-            			err(player, "available teams: ");
+            			Players.err(player, "available teams: ");
             			for (Team teamList : Team.baseTeams) builder.append(" - [accent]" + teamList.name + "[]\n");
             			player.sendMessage(builder.toString());
             			return;
@@ -780,12 +732,11 @@ public class moreCommandsPlugin extends Plugin {
         	} else team = player.team();
         	
             if (arg.length == 4) {
-            	try {
-            		count = Integer.parseInt(arg[3]);
-            	} catch (NumberFormatException e) {
-            		err(player, "Count must be number!");
+            	if (!Strings.canParseInt(arg[3])) {
+            		Players.err(player, "'count' must be number!");
             		return;
-            	}
+            	} else count = Strings.parseInt(arg[3]);
+
             } else count = 1;
             
             if (unit != null) {
@@ -799,22 +750,19 @@ public class moreCommandsPlugin extends Plugin {
             }
         });
         
-        handler.<Player>register("creative", "[username|ID...]", "Instantly build/destroy the desired structures.", (arg, player) -> {
-        	if (!adminCheck(player)) return;
+        handler.<Player>register("godmode", "[username|ID...]", "[scarlet][God][]: I'm divine!", (arg, player) -> {
+        	if (!Players.adminCheck(player)) return;
         	
         	Player target;
         	if (arg.length == 0) target = player;
-        	else {
-        		target = Groups.player.find(p -> p.name().equals(arg[0]));
-        		if (target == null) target = Groups.player.find(p -> p.uuid().equals(arg[0]));
-        	}
+        	else target = Players.find(arg[0]);
         	
         	if (target != null) {
-        		if (creativePlayers.containsKey(target)) {
-        			target.unit().health = creativePlayers.get(target);
-        			creativePlayers.remove(target);
+        		if (godmodPlayers.containsKey(target)) {
+        			target.unit().health = godmodPlayers.get(target);
+        			godmodPlayers.remove(target);
         		} else {
-        			creativePlayers.put(target, (int) player.unit().health);
+        			godmodPlayers.put(target, (int) player.unit().health);
         			target.unit().health = Integer.MAX_VALUE;
         		}
         		
@@ -823,21 +771,21 @@ public class moreCommandsPlugin extends Plugin {
         		return;
         	}
         		
-        	if (arg.length == 0) player.sendMessage("[green]Creative mode is " + (creativePlayers.containsKey(target) ? "enabled" : "disabled"));
+        	if (arg.length == 0) player.sendMessage("[green]Creative mode is " + (godmodPlayers.containsKey(target) ? "enabled" : "disabled"));
         	else {
-        		player.sendMessage("[green]Creative mode is " + (creativePlayers.containsKey(target) ? "enabled" : "disabled") + (arg.length == 0 ? "" : " for [accent]" + target.name));
-        		target.sendMessage("[green]" + (creativePlayers.containsKey(target) ? "You've been put into creative mode" : "You have been removed from creative mode") + " by [accent]"+ player.name);
+        		player.sendMessage("[green]Creative mode is " + (godmodPlayers.containsKey(target) ? "enabled" : "disabled") + (arg.length == 0 ? "" : " for [accent]" + target.name));
+        		target.sendMessage("[green]" + (godmodPlayers.containsKey(target) ? "You've been put into creative mode" : "You have been removed from creative mode") + " by [accent]"+ player.name);
         	}
         	
         });
         
         handler.<Player>register("tchat", "<on|off>", "Enabled/disabled the tchat", (arg, player) -> {
-        	if (!adminCheck(player)) return;
+        	if (!Players.adminCheck(player)) return;
         	
         	switch (arg[0]) {
         		case "on":
         			if (tchat) {
-        				err(player, "Disabled first!");
+        				Players.err(player, "Disabled first!");
         				return;
         			}
         			tchat = true;
@@ -846,58 +794,60 @@ public class moreCommandsPlugin extends Plugin {
         			break;
         		case "off":
         			if (!tchat) {
-        				err(player, "Enabled first!");
+        				Players.err(player, "Enabled first!");
         				return;
         			}
         			tchat = false;
         			Call.sendMessage("\n[gold]-------------------- \n[scarlet]/!\\[orange] The tchat is disabled! [lightgray](by " + player.name + "[lightgray]) \n[gold]--------------------\n");
         			Log.info("Tchat disabled by " + player.name + ".");
         			break;
-        		default: err(player, "Invalid arguments.[] \n - The tchat is currently [accent]%s[].", tchat ? "enabled" : "disabled");
+        		default: Players.err(player, "Invalid arguments.[] \n - The tchat is currently [accent]%s[].", tchat ? "enabled" : "disabled");
         	}
         });   
         
         handler.<Player>register("kick", "<ID|username...>", "Kick a person by name or ID", (arg, player) -> {
-            if (!adminCheck(player)) return;
+            if (!Players.adminCheck(player)) return;
 
-            Player target = Groups.player.find(p -> p.name().equals(arg[0]));
-            if (target == null) target = Groups.player.find(p -> p.uuid().equals(arg[0]));
+            Player target = Players.find(arg[0]);
             
             if (target != null) {
-                Call.sendMessage("[scarlet]/!\\[] " + target.name() + "[scarlet] has been kicked of the server.");
+                Call.sendMessage("[scarlet]/!\\[] " + target.name + "[scarlet] has been kicked of the server.");
                 target.kick(KickReason.kick);
-                info(player, "It is done.");
-            } else info(player, "Nobody with that name or ID could be found...");
+                Players.info(player, "It is done.");
+            } else Players.err(player, "Nobody with that name or ID could be found...");
         });   
         
         handler.<Player>register("pardon", "<ID>", "Pardon a player by ID and allow them to join again", (arg, player) -> {
-        	if (!adminCheck(player)) return;
+        	if (!Players.adminCheck(player)) return;
         	
         	PlayerInfo info = netServer.admins.getInfoOptional(arg[0]);
         	
         	if (info != null) {
         		info.lastKicked = 0;
-        		info(player, "Pardoned player: [accent]%s", info.lastName);
-        	} else err(player, "That ID can't be found.");
+        		Players.info(player, "Pardoned player: [accent]%s", info.lastName);
+        	} else Players.err(player, "That ID can't be found.");
         });
 
         handler.<Player>register("ban", "<id|name|ip> <username|IP|ID...>", "Ban a person", (arg, player) -> {
-        	if (!adminCheck(player)) return;
+        	if (!Players.adminCheck(player)) return;
 
-            if (arg[0].equals("id")) {
-                netServer.admins.banPlayerID(arg[1]);
-                info(player, "Banned.");
-            } else if (arg[0].equals("name")) {
-                Player target = Groups.player.find(p -> p.name().equalsIgnoreCase(arg[1]));
-                if (target != null) {
-                    netServer.admins.banPlayer(target.uuid());
-                    info(player, "Banned.");
-                } else err(player, "No matches found.");
-            } else if (arg[0].equals("ip")) {
-                netServer.admins.banPlayerIP(arg[1]);
-                info(player, "Banned.");
-            } else err(player, "Invalid type.");
-
+        	switch (arg[0]) {
+        		case "id":
+        			netServer.admins.banPlayerID(arg[1]);
+        			break;
+        		case "name":
+        			Player target = Players.find(arg[1]);
+        			if (target != null) netServer.admins.banPlayer(target.uuid());
+        			else Players.err(player, "No matches found.");
+        			break;
+        		case "ip":
+        			netServer.admins.banPlayerIP(arg[1]);
+        			break;
+        		default:
+        			Players.err(player, "Invalid type.");
+        			return;
+        	}
+            Players.info(player, "Banned.");
             
             for (Player gPlayer : Groups.player) {
                 if (netServer.admins.isIDBanned(gPlayer.uuid())) {
@@ -908,18 +858,42 @@ public class moreCommandsPlugin extends Plugin {
         });
         
         handler.<Player>register("unban", "<ip|ID>", "Unban a person", (arg, player) -> {
-        	if (!adminCheck(player)) return;
+        	if (!Players.adminCheck(player)) return;
 
-            if (netServer.admins.unbanPlayerIP(arg[0]) || netServer.admins.unbanPlayerID(arg[0])) info(player, "Unbanned player: [accent]%s", arg[0]);
-            else err(player, "That IP/ID is not banned!");
+            if (netServer.admins.unbanPlayerIP(arg[0]) || netServer.admins.unbanPlayerID(arg[0])) Players.info(player, "Unbanned player: [accent]%s", arg[0]);
+            else Players.err(player, "That IP/ID is not banned!");
         });
-        
+
     }
 
-    private void err(Player player, String fmt, Object... msg) { PlayerFunctions.err(player, fmt, msg); }
-    private void info(Player player, String fmt, Object... msg) { PlayerFunctions.info(player, fmt, msg); }
-    private void warn(Player player, String fmt, Object... msg) { PlayerFunctions.warn(player, fmt, msg); }
-    private boolean adminCheck(Player player) { return PlayerFunctions.adminCheck(player); }
+    private String putColor(String str, int hue) {
+    	String out = "";
+    	for (char c : str.toCharArray()) {
+    		if (hue < 360) hue+=10;
+    		else hue = 0;
+    		
+    		out += "[#" + Integer.toHexString(Color.getHSBColor(hue / 360f, 1f, 1f).getRGB()).substring(2) + "]" + c;
+    	}
+        return out;
+    }
+    
+    private Object[] tpSearsh(String str, Player pDefault) {
+    	Player target = Players.find(str);
+    	String __temp__[];
+    	
+    	if (target == null) {
+    		__temp__ = str.split(",");
+    		
+    		if (!Strings.canParseInt(__temp__[0]) || !Strings.canParseInt(__temp__[1])) {
+    			Players.err(pDefault, "Player [orange]" + str + "[] doesn't exist or not connected!");
+				return new Object[]{null, null};
+    		} else if (__temp__.length != 2) {
+    			Players.err(pDefault, "Wrong coordinates!");
+    			return new Object[]{null, null};
+    		} else return new Object[]{pDefault, new int[]{Strings.parseInt(__temp__[0]), Strings.parseInt(__temp__[1])}};
+
+    	} else return new Object[]{target, null};
+    }
     
     //search a possible team
     private Team getPosTeam(Player p){
