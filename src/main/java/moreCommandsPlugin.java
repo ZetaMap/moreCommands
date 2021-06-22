@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 
+import arc.Core;
 import arc.Events;
 import arc.math.Mathf;
 import arc.struct.ObjectMap;
@@ -117,8 +118,6 @@ public class moreCommandsPlugin extends Plugin {
         	Player player = e.unit.getPlayer();
         	
         	if (player != null) {
-        		player.sendMessage(e.tile.block().health+"");
-        		
         		if (godmodPlayers.containsKey(player)) {
         			if (e.breaking) Call.deconstructFinish(e.tile, e.tile.block(), e.unit);
         			else Call.constructFinish(e.tile, e.tile.block(), e.unit, (byte)0, e.team, false);
@@ -773,10 +772,10 @@ public class moreCommandsPlugin extends Plugin {
         		return;
         	}
         		
-        	if (arg.length == 0) player.sendMessage("[green]Creative mode is " + (godmodPlayers.containsKey(target) ? "enabled" : "disabled"));
+        	if (arg.length == 0) player.sendMessage("[gold]God mode is [green]" + (godmodPlayers.containsKey(target) ? "enabled" : "disabled"));
         	else {
-        		player.sendMessage("[green]Creative mode is " + (godmodPlayers.containsKey(target) ? "enabled" : "disabled") + (arg.length == 0 ? "" : " for [accent]" + target.name));
-        		target.sendMessage("[green]" + (godmodPlayers.containsKey(target) ? "You've been put into creative mode" : "You have been removed from creative mode") + " by [accent]"+ player.name);
+        		player.sendMessage("[gold]God mode is [green]" + (godmodPlayers.containsKey(target) ? "enabled" : "disabled") + (arg.length == 0 ? "" : " for [accent]" + target.name));
+        		target.sendMessage("[green]" + (godmodPlayers.containsKey(target) ? "You've been put into god mode" : "You have been removed from creative mode") + " by [accent]"+ player.name);
         	}
         	
         });
