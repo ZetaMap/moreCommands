@@ -645,17 +645,17 @@ public class moreCommandsPlugin extends Plugin {
             }
             
             if ((boolean) Config.valueOf("strict").get()) {
-                Config.valueOf("strict").set(false);
-                Core.settings.forceSave();
-                player.unit().set(x, y);
-                Call.setPosition(player.con, x, y);
-                Config.valueOf("strict").set(true);
-                Core.settings.forceSave();
+            	Config.valueOf("strict").set(false);
+            	Core.settings.forceSave();
+            	target.unit().set(co[0]*8, co[1]*8);
+            	Call.setPosition(target.con, co[0]*8, co[1]*8);
+            	Config.valueOf("strict").set(true);
+            	Core.settings.forceSave();
             } else {
-                player.unit().set(x, y);
-                Call.setPosition(player.con, x, y);
+            	target.unit().set(co[0]*8, co[1]*8);
+            	Call.setPosition(target.con, co[0]*8, co[1]*8);
             }
-            player.snapSync();
+            target.snapSync();
             
             if (arg.length == 2) player.sendMessage("[green]You teleported [accent]" + target.name + "[green] to [accent]" + co[0] + "[green]x[accent]" + co[1] + "[green].");
             else player.sendMessage("[green]You teleported to [accent]" + co[0] + "[]x[accent]" + co[1] + "[].");
