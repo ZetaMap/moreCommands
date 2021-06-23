@@ -7,15 +7,16 @@
 * `/info-all [ID|username...]` Get all the player information.
 * `/rtv` Rock the vote to change map.
 * `/rainbow [ID]` RAINBOW!!
-* `/dm <username> <message...>` Send a message to a player. (replace all spaces with '_' in the name).
+* `/msg <username> <message...>` Send a message to a player. (replace all spaces with '_' in the name).
 * `/help [page]` Recreate /help to display only commands related to your rank.
+- [ ] `/effect <effectID> [ID|username...]` Gives you a particle effect. /!\May cause errors
 
 ### Admin Only Commands
 * `/team [teamname|list|vanish] [username...]` This command lets admins change teams.
 * `/am <message...>` Send a message as admin.
 * `/kick <ID|username...>` Kick a person by name or ID.
 * `/pardon <ID>` Pardon a votekicked player by ID and allow them to join again.
-* `/ban <type-id|name|ip> <username|IP|ID...>`  Ban a person.
+* `/ban <id|name|ip> <username|IP|ID...>`  Ban a person.
 * `/unban <ip|ID>` Unban a person.
 * `/players <all|online|ban>` Gives the list of players according to the type of filter given.
 * `/kill [username...]` Kill a player.
