@@ -3,7 +3,6 @@ package functions;
 import arc.struct.ObjectMap;
 import arc.util.Strings;
 
-import mindustry.gen.Groups;
 import mindustry.gen.Player;
 
 public class TempData {
@@ -12,7 +11,7 @@ public class TempData {
 	public String realName;
 	public String normalizedName;
 
-	public TempData(int hue, Player p){
+	private TempData(int hue, Player p){
         this.hue = hue;
         this.realName = p.name;
         this.normalizedName = Strings.stripColors(p.name);
@@ -21,14 +20,6 @@ public class TempData {
 	public void setHue(int i) {
     	this.hue = i; 
     }
-	
-	public static Player findPlayer(String name) {
-		for (Player p : Groups.player) {
-			if (name.equals(tempData.get(p).normalizedName)) return p;
-		}
-		
-		return null;
-	}
 	
 	public static TempData get(Player p) {
 		return tempData.get(p);

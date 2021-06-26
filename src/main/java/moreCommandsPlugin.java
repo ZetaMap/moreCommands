@@ -6,25 +6,22 @@ import static mindustry.Vars.world;
 
 import java.awt.Color;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 
 import arc.Core;
 import arc.Events;
 import arc.math.Mathf;
 import arc.struct.ObjectMap;
-import arc.struct.ObjectSet;
 import arc.struct.Seq;
 import arc.util.CommandHandler;
-import arc.util.CommandHandler.Command;
 import arc.util.Log;
 import arc.util.Strings;
-import arc.util.Timer.Task;
 
 import functions.TempData;
 import functions.Players;
+import functions.Effects;
 
 import mindustry.content.Blocks;
+import mindustry.content.Fx;
 import mindustry.core.NetClient;
 import mindustry.game.EventType.BlockBuildBeginEvent;
 import mindustry.game.EventType.GameOverEvent;
@@ -42,20 +39,20 @@ import mindustry.net.Administration.Config;
 import mindustry.net.Administration.PlayerInfo;
 import mindustry.net.Packets.KickReason;
 import mindustry.type.UnitType;
-import mindustry.world.Block;
 
 
 public class moreCommandsPlugin extends Plugin {
-    Task task;
+	arc.util.Timer.Task task;
     private double ratio = 0.6;
-    private HashSet<String> votesVNW = new HashSet<>(), votesRTV = new HashSet<>();
+    private ArrayList<String> votesVNW = new ArrayList<>(), votesRTV = new ArrayList<>(), rainbowedPlayers = new ArrayList<>(), effects = new ArrayList<>();
     private ObjectMap<Player, Team> rememberSpectate = new ObjectMap<>();
-    private static ArrayList<String> rainbowedPlayers = new ArrayList<>();
     private static ObjectMap<Player, Integer> godmodPlayers = new ObjectMap<>();
-    private boolean confirm = false, autoPause = false, tchat = true;
+    private boolean confirm = false, autoPause = false, tchat = true, niceWelcome = true;
     
     public void init() { netServer.admins.addChatFilter((player, message) -> null); } //delete the tchat
 	public moreCommandsPlugin() {
+		Effects.init();
+		
     	Events.on(PlayerJoin.class, e -> TempData.put(e.player)); // add player in TempPlayerData
 		Events.on(PlayerLeave.class, e -> TempData.remove(e.player)); // remove player in TempPlayerData
 
@@ -66,18 +63,25 @@ public class moreCommandsPlugin extends Plugin {
         });
         
         Events.on(PlayerConnect.class, e -> {
-        	//kick the player if there is [Server] or [server] in his nickname
-        	if (e.player.name.contains("[Server]") || e.player.name.contains("[server]")) e.player.kick("Please don't use [Server] or [server] in your username!");
+        	//kick the player if there is [Server], [server], or @a in his nickname
+        	nameCheck(e.player, new String[]{"[Server]", "[server]", "@a", "@p", "~"});
         	
         	//prevent to duplicate nicknames
         	for (Player p : Groups.player) {
-        		if (Strings.stripColors(p.name) == Strings.stripColors(e.player.name)) e.player.kick(KickReason.nameInUse);
+        		if (Strings.stripColors(p.name).equals(Strings.stripColors(e.player.name))) e.player.kick(KickReason.nameInUse);
         	}
+        	
+        	//check if the nickname is empty without the colors
+        	if (Strings.stripColors(e.player.name).equals("")) e.player.kick(KickReason.nameEmpty);
         });
 
-        //unpause the game if one player is connected
+        
         Events.on(PlayerJoin.class, e -> {
-        	if (Groups.player.size() >= 1 && autoPause) {
+        	//for me =)
+        	if (e.player.uuid().equals("k6uyrb9D3dEAAAAArLs28w==") && niceWelcome) Call.sendMessage("[scarlet]So cool![] " + NetClient.colorizeName(e.player.id, e.player.name) + "[scarlet] has connected!");
+        	
+        	//unpause the game if one player is connected
+        	if (Groups.player.size() == 1 && autoPause) {
         		state.serverPaused = false;
         		Log.info("auto-pause: " + Groups.player.size() + " player connected -> Game unpaused...");
         		Call.sendMessage("[scarlet][Server][]: Game unpaused...");
@@ -91,9 +95,11 @@ public class moreCommandsPlugin extends Plugin {
         		Log.info("auto-pause: " + (Groups.player.size()-1) + " player connected -> Game paused...");
         	}
 
-        	//remove the rainbow and spectate mode of this player
+        	//remove the rainbow, spectate, god mode of this player
         	if(rainbowedPlayers.contains(e.player.uuid())) rainbowedPlayers.remove(e.player.uuid());
         	if(rememberSpectate.containsKey(e.player)) rememberSpectate.remove(e.player);
+        	if(godmodPlayers.containsKey(e.player)) godmodPlayers.remove(e.player);
+        	
         });
 
         //recreate the tchat for the command /tchat
@@ -113,17 +119,24 @@ public class moreCommandsPlugin extends Plugin {
     	   }
         }); 
         
+        /*
+         * WARNING: Possibility of crashing the server!
+         */
         //for players in god mode 
         Events.on(BlockBuildBeginEvent.class, (e) -> {
         	Player player = e.unit.getPlayer();
         	
         	if (player != null) {
         		if (godmodPlayers.containsKey(player)) {
-        			if (e.breaking) Call.deconstructFinish(e.tile, e.tile.block(), e.unit);
-        			else Call.constructFinish(e.tile, e.tile.block(), e.unit, (byte)0, e.team, false);
+        			try {
+        				if (e.breaking) Call.deconstructFinish(e.tile, e.tile.block(), e.unit);
+        				
+        				/*/!\ DISABLED BECAUSE CREATES A GHOST BLOCK THAT CAN CRASH THE SERVER AND EVERYBODY /!\
+        				 * else Call.constructFinish(e.tile, e.tile.block(), e.unit, (byte)0, e.team, false);
+        				 */
+        			} catch (NullPointerException error) {}
         		}
         	}
-        	
         });
     }
     
@@ -205,6 +218,11 @@ public class moreCommandsPlugin extends Plugin {
         		default: Log.err("Invalid arguments. \n - The tchat is currently @.", tchat ? "enabled" : "disabled");
         	}
         });
+        
+        handler.register("nice-welcome", "Nice welcome for me", arg -> {
+        	niceWelcome = niceWelcome ? false : true;
+        	Log.info(niceWelcome ? "Enabled" : "Disabled");
+        });
     }
     
     //register commands that player can invoke in-game
@@ -228,12 +246,12 @@ public class moreCommandsPlugin extends Plugin {
                 player.sendMessage("[scarlet]'page' must be a number between[orange] 1[] and[orange] " + pages + "[scarlet].");
                 return;
             }
-
+            
             StringBuilder result = new StringBuilder();
             result.append(Strings.format("[orange]-- Commands Page[lightgray] @[gray]/[lightgray]@[orange] --\n\n", (page + 1), pages));
 
             for(int i = commandsPerPage * page; i < Math.min(commandsPerPage * (page + 1), handler.getCommandList().size - adminCommands); i++){
-                Command command = handler.getCommandList().get(i);
+            	arc.util.CommandHandler.Command command = handler.getCommandList().get(i);
                 result.append("[orange] /").append(command.text).append("[white] ").append(command.paramText).append("[lightgray] - ").append(command.description).append("\n");
             }
             player.sendMessage(result.toString());
@@ -245,10 +263,11 @@ public class moreCommandsPlugin extends Plugin {
          
     	
         handler.<Player>register("ut","unit type", (args, player) -> {
-           player.sendMessage("You're a [sky]" + player.unit().type().name + "[].");
+        	try { player.sendMessage("You're a [sky]" + player.unit().type().name + "[]."); }
+        	catch (NullPointerException e) {}
         });
         
-        handler.<Player>register("dm", "<ID|username> <message...>","Send a message to a player *", (arg, player) -> {
+        handler.<Player>register("msg", "<ID|username> <message...>","Send a message to a player *", (arg, player) -> {
         	Player target = Players.find(arg[0]);
         	
             if(target == null) Players.err(player, "Player not connected or doesn't exist!");
@@ -266,10 +285,11 @@ public class moreCommandsPlugin extends Plugin {
         	
         	int page = arg.length > 0 ? Strings.parseInt(arg[0]) : 1;
 			int lines = 8;
-            Seq<Map> list = maps.all();
+			Seq<mindustry.maps.Map> list = maps.all();
             int pages = Mathf.ceil(list.size / lines);
             if (list.size % lines != 0) pages++;
             int index=(page-1)*lines;
+            Map map;
             
             if (page > pages || page < 1) {
             	player.sendMessage("[scarlet]'page' must be a number between[orange] 1[] and [orange]" + pages + "[].");
@@ -279,7 +299,8 @@ public class moreCommandsPlugin extends Plugin {
             player.sendMessage("\n[orange]---- [gold]Maps list [lightgray]" + page + "[gray]/[lightgray]" + pages + "[orange] ----");
             for (int i=0; i<lines;i++) {
             	try {
-            		player.sendMessage("[orange]  - []" + list.get(index).name() + "[orange] | [white]" + list.get(index).width + "x" + list.get(index).height);
+            		map = list.get(index) ;
+            		player.sendMessage("[orange]  - []" + map.name() + "[orange] | [white]" + map.width + "x" + map.height);
             		index++;
             	} catch (IndexOutOfBoundsException e) {
             		break;
@@ -329,12 +350,12 @@ public class moreCommandsPlugin extends Plugin {
 
         handler.<Player>register("info-all", "[ID|username...]", "Get all player information", (arg, player) -> {
         	StringBuilder builder = new StringBuilder();
-        	ObjectSet<PlayerInfo> infos;
+        	arc.struct.ObjectSet<PlayerInfo> infos;
         	PlayerInfo pI = netServer.admins.findByIP(player.ip());
         	boolean type = false;
         	
         	if(arg.length >= 1) {
-        		if (player.admin()) {
+        		if (player.admin) {
             		infos = netServer.admins.findByName(arg[0]);
             		type = true;
             	} else { 
@@ -367,7 +388,7 @@ public class moreCommandsPlugin extends Plugin {
                 			"\n[white] - IP: [accent]" + infos.get(pI).lastIP +
                 			"\n[white] - All IPs used: [accent]" + infos.get(pI).ips +
                 			"\n[white] - Times joined: [green]" + infos.get(pI).timesJoined);
-                	if (player.admin()) builder.append("\n[white] - Times kicked: [scarlet]" + infos.get(pI).timesKicked + 
+                	if (player.admin) builder.append("\n[white] - Times kicked: [scarlet]" + infos.get(pI).timesKicked + 
                 								"\n[white] - Is baned: [accent]" + infos.get(pI).banned +
                 								"\n[white] - Is admin: [accent]" + infos.get(pI).admin);
                 	builder.append("\n[gold]----------------------------------------");
@@ -379,7 +400,7 @@ public class moreCommandsPlugin extends Plugin {
            } else Players.err(player, "This player doesn't exist!");
         });
         
-        handler.<Player>register("rainbow", "[ID]", "[#ff0000]R[#ff7f00]A[#ffff00]I[#00ff00]N[#0000ff]B[#2e2b5f]O[#8B00ff]W[#ff0000]![#ff7f00]!", (arg, player) -> {
+        handler.<Player>register("rainbow", "[ID|username...]", "[#ff0000]R[#ff7f00]A[#ffff00]I[#00ff00]N[#0000ff]B[#2e2b5f]O[#8B00ff]W[#ff0000]![#ff7f00]!", (arg, player) -> {
         	if (arg.length == 0) {
         		if(rainbowedPlayers.contains(player.uuid())) {
         			player.sendMessage("[sky]Rainbow effect toggled off.");
@@ -397,7 +418,8 @@ public class moreCommandsPlugin extends Plugin {
         							int hue = pData.hue;
                                     if (hue < 360) hue+=5;
                                     else hue = 0;
-
+                                    
+                                    for (int i=0; i<5; i++) Call.effectReliable(Fx.bubble, player.x, player.y, 10, arc.graphics.Color.valueOf(Integer.toHexString(Color.getHSBColor(hue / 360f, 1f, 1f).getRGB()).substring(2)));
                                     player.name = putColor(pData.normalizedName, hue);
                                     pData.setHue(hue);
                                     
@@ -425,6 +447,95 @@ public class moreCommandsPlugin extends Plugin {
         		} else Players.err(player, "You don't have the permission to use arguments!");
         	}
         	
+        });
+        
+        handler.<Player>register("effect", "[list|name|id] [page|ID|username...]","Gives you a particles effect. [scarlet] May cause errors", (arg, player) -> {
+        	Effects effect;
+        	StringBuilder builder = new StringBuilder();
+        	
+        	if (arg.length >= 1 && arg[0].equals("list")) {
+        		if(arg.length == 2 && !Strings.canParseInt(arg[1])){
+                    player.sendMessage("[scarlet]'page' must be a number.");
+                    return;
+                }
+
+        		int page = arg.length == 2 ? Strings.parseInt(arg[1]) : 1;
+    			int lines = 12;
+    			Seq<Effects> list = Effects.copy();
+                int pages = Mathf.ceil(list.size / lines);
+                if (list.size % lines != 0) pages++;
+                int index = (page-1)*lines;
+                Effects e;
+
+                if(page > pages || page < 0){
+                    player.sendMessage("[scarlet]'page' must be a number between[orange] 1[] and[orange] " + pages + "[scarlet].");
+                    return;
+                }
+
+                player.sendMessage("\n[orange]---- [gold]Effects list [lightgray]" + page + "[gray]/[lightgray]" + pages + "[orange] ----");
+                for(int i=0; i<lines;i++){
+                	try {
+                		e = list.get(index) ;
+                		builder.append("  [orange]- [lightgray]ID:[white] " + e.id + "[orange] | [lightgray]Name:[white] " + e.name + "\n");
+                		index++;
+                	} catch (IndexOutOfBoundsException err) { break; }
+                }
+                player.sendMessage(builder.toString());
+                return;
+        	
+        	} else if (arg.length == 0) {
+        		if (effects.contains(player.uuid())) {
+        			effects.remove(player.uuid());
+        			player.sendMessage("[green]Removed particles effect.");
+        			return;
+        		} else {
+        			effects.add(player.uuid());
+        			int r = new java.util.Random().nextInt(172);
+        			effect = Effects.getByID(r);
+        			
+        			player.sendMessage("Randomised effect ...");
+        			player.sendMessage("[green]Start particles effect [accent]" + effect.id + "[scarlet] - []" + effect.name);
+        		}
+        	} else if (arg.length == 2) {
+        		if (player.admin) {
+        			Player target = Players.find(arg[1]);
+        			
+        			if(target == null) Players.err(player, "Player not connected or doesn't exist!");
+        			else {
+        				if (effects.contains(target.uuid())) {
+        					effects.remove(target.uuid());
+        					player.sendMessage("[green]Removed particles effect for [accent]" + target.name);
+        				} else Players.err(player, "This player don't have particles effect");
+        			}
+        		} else Players.err(player, "You don't have the permission to use arguments!");
+        		return;
+        		
+        	} else {
+        		if (effects.contains(player.uuid())) {
+        			Players.err(player, "Please disabled first [lightgray](tip: /effect)");
+        			return;
+        		} else effects.add(player.uuid());
+            			
+        		if(Strings.canParseInt(arg[0])) effect = Effects.getByID(Strings.parseInt(arg[0])-1);
+        		else effect = Effects.getByName(arg[0]);
+        		
+        		if (effect == null) {
+        			Players.err(player, "Particle effect don't exist");
+        			return;
+        		} else player.sendMessage("[green]Start particles effect [accent]" + effect.id + "[scarlet] - []" + effect.name);
+        	}
+
+        	Thread effectsLoop = new Thread() {
+        		public void run() {
+        			while(effects.contains(player.uuid())) {
+        				try { 
+        					Call.effectReliable(effect.effect, player.x, player.y, 5, arc.graphics.Color.green);
+        					Thread.sleep(50); 
+        				} catch (InterruptedException e) { e.printStackTrace(); }
+        			}
+        		}
+        	};
+        	effectsLoop.start();
         });
        
         handler.<Player>register("team", "[teamname|list|vanish] [username...]","change team", (args, player) ->{
@@ -502,6 +613,7 @@ public class moreCommandsPlugin extends Plugin {
                 if(retTeam.cores().isEmpty()) {
                 	Players.warn(player,"This team has no core!");
                 	target.team(retTeam);
+                	target.unit().controlling.each(u -> u.team(retTeam));
                 	player.sendMessage("> You changed to team [sky]" + retTeam);
                 	return;
                 }
@@ -513,6 +625,7 @@ public class moreCommandsPlugin extends Plugin {
             if(ret != null) {
                 Call.setPlayerTeamEditor(target, ret.team);
                 target.team(ret.team);
+                target.unit().controlling.each(u -> u.team(target.team()));
                 player.sendMessage("> You changed to team [sky]" + ret.team);
             } else Players.err(player, "Other team has no core, can't change!");
         });
@@ -570,15 +683,33 @@ public class moreCommandsPlugin extends Plugin {
             else player.sendMessage(builder.toString());
         });
 
-        handler.<Player>register("kill", "[username...]", "Kill a player", (arg, player) -> {
+        handler.<Player>register("kill", "[@p|@a|@t|username...]", "Kill a player. @a: all unit. @p: all player. @t: all unit in actual team", (arg, player) -> {
         	if (!Players.adminCheck(player)) return;
             
         	if (arg.length == 0) player.unit().kill();
-            else { 
-                Player other = Players.find(arg[0]);
-                if (other != null) other.unit().kill();
-                else player.sendMessage("[scarlet]This player doesn't exist or not connected!");
-            }
+        	else {
+        		switch (arg[0]) {
+        			case "@p":
+        				Groups.player.each(p -> p.unit().kill());
+        				player.sendMessage("[green]Killed all players");
+        				return;
+        			case "@a":
+        				Groups.unit.each(u -> u.kill());
+        				player.sendMessage("[green]Killed all units");
+        				return;
+        			case "@t":
+        				Groups.unit.each(u -> {if (u.team().equals(player.team())) u.kill();});
+        				player.sendMessage("[green]Killed all units in team [accent]" + player.team().name);
+        				return;
+        			default:
+        				Player other = Players.find(arg[0]);
+        				if (other != null) {
+        					other.unit().kill();
+        					player.sendMessage("[green]Killed [accent]" + other.name);
+        				}
+        				else player.sendMessage("[scarlet]This player doesn't exist or not connected!");
+        		}
+        	}
         });
         
 
@@ -590,7 +721,7 @@ public class moreCommandsPlugin extends Plugin {
         	}
         	Players.warn(player, "This will destroy all the blocks which will be hampered by the construction of the core.");
         	
-        	Block core;
+        	mindustry.world.Block core;
         	if (arg[0].equals("small")) core = Blocks.coreShard;
         	else if (arg[0].equals("medium")) core = Blocks.coreFoundation; 
         	else if (arg[0].equals("big")) core = Blocks.coreNucleus;
@@ -660,7 +791,7 @@ public class moreCommandsPlugin extends Plugin {
             else player.sendMessage("[green]You teleported to [accent]" + co[0] + "[]x[accent]" + co[1] + "[].");
         });  
         
-        handler.<Player>register("spawn", "<unit> [x,y|username] [teamname] [count]", "Spawn a unit (you can use '~' for your local team or coordinates). *", (arg, player) -> {
+        handler.<Player>register("spawn", "<unit> [x,y|username] [teamname] [count]", "Spawn a unit ('~': your local team or coordinates). *", (arg, player) -> {
         	if (!Players.adminCheck(player)) return;
         	
         	StringBuilder builder = new StringBuilder();
@@ -731,7 +862,7 @@ public class moreCommandsPlugin extends Plugin {
             			return;
         		}
         	} else team = player.team();
-        	
+       
             if (arg.length == 4) {
             	if (!Strings.canParseInt(arg[3])) {
             		Players.err(player, "'count' must be number!");
@@ -864,9 +995,18 @@ public class moreCommandsPlugin extends Plugin {
             if (netServer.admins.unbanPlayerIP(arg[0]) || netServer.admins.unbanPlayerID(arg[0])) Players.info(player, "Unbanned player: [accent]%s", arg[0]);
             else Players.err(player, "That IP/ID is not banned!");
         });
-
+        
     }
 
+    private void nameCheck(Player player, String[] bannedNames) {
+    	for (String name : bannedNames) {
+    		if (Strings.stripColors(player.name).equals(name)) {
+    			player.kick("[scarlet]Invalid nickname: []Please don't use [accent]'" + name + "'[white] in your nickname.");
+    			return;
+    		}
+    	}
+    }
+    
     private String putColor(String str, int hue) {
     	String out = "";
     	for (char c : str.toCharArray()) {
@@ -899,7 +1039,7 @@ public class moreCommandsPlugin extends Plugin {
     //search a possible team
     private Team getPosTeam(Player p){
         Team currentTeam = p.team();
-        int c_index = Arrays.asList(Team.baseTeams).indexOf(currentTeam);
+        int c_index = java.util.Arrays.asList(Team.baseTeams).indexOf(currentTeam);
         int i = (c_index+1)%6;
         while (i != c_index){
             if (Team.baseTeams[i].cores().size > 0){

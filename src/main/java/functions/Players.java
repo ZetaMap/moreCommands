@@ -1,7 +1,7 @@
 package functions;
 
 import arc.util.Strings;
-
+import mindustry.gen.Groups;
 import mindustry.gen.Player;
 
 public class Players {
@@ -23,9 +23,10 @@ public class Players {
     	} else return true;
     }
     
-    public static Player find(String name) {
-    	Player target = TempData.findPlayer(Strings.stripColors(name));
-     	if (target == null) target = TempData.findPlayer(Strings.stripColors(name.replaceAll("_", " ")));
+    public static Player find(String nameOrID) {
+    	Player target = Groups.player.find(p -> p.uuid().equals(nameOrID));
+    	if (target == null) target = Groups.player.find(p -> Strings.stripColors(nameOrID).equals(TempData.get(p).normalizedName));
+     	if (target == null) target = Groups.player.find(p -> Strings.stripColors(nameOrID.replaceAll("_", " ")).equals(TempData.get(p).normalizedName));
      	
     	return target;
     }
