@@ -6,10 +6,10 @@
 * `/maps [page]` List all maps on server.
 * `/info-all [ID|username...]` Get all the player information.
 * `/rtv` Rock the vote to change map.
-* `/rainbow [ID]` RAINBOW!!
+* `/rainbow [ID|username...]` RAINBOW!!
 * `/msg <username> <message...>` Send a message to a player. (replace all spaces with '_' in the name).
 * `/help [page]` Recreate /help to display only commands related to your rank.
-- [ ] `/effect <effectID> [ID|username...]` Gives you a particle effect. /!\May cause errors
+* `/effect [list|name|id] [page|ID|username...]` Gives you a particle effect. /!\May cause errors
 
 ### Admin Only Commands
 * `/team [teamname|list|vanish] [username...]` This command lets admins change teams.
@@ -24,12 +24,13 @@
 * `/core <small|medium|big>` Spawn a core to your corrdinate.
 * `/tchat <on|off>` Enabled/disabled the tchat.
 * `/spawn <unit> [x,y|username] [teamname] [count]` Spawn a unit (you can use '~' for your local team or coordinates).
-* `/godmode [username|ID...]` Instantly build/destroy the desired structures.
+* `/godmode [username|ID...]` [God]: I'm divine!
 
 ### Server Commands
 * `unban-all [y|n]` Unban all ID and IP.
 * `auto-pause` Pause the game if no one is connected.
 * `tchat <on|off>` Enabled/disabled the tchat.
+* `nice-welcome` Nice welcome for me.
 
 ### Feedback
 Open an issue if you have a suggestion.
