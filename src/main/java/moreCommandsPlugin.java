@@ -1,5 +1,4 @@
 import static mindustry.Vars.content;
-import static mindustry.Vars.maps;
 import static mindustry.Vars.netServer;
 import static mindustry.Vars.state;
 import static mindustry.Vars.world;
@@ -21,12 +20,8 @@ import functions.Players;
 import functions.Effects;
 
 import mindustry.content.Blocks;
-import mindustry.content.Fx;
 import mindustry.core.NetClient;
-import mindustry.game.EventType.BlockBuildBeginEvent;
 import mindustry.game.EventType.GameOverEvent;
-import mindustry.game.EventType.PlayerChatEvent;
-import mindustry.game.EventType.PlayerConnect;
 import mindustry.game.EventType.PlayerJoin;
 import mindustry.game.EventType.PlayerLeave;
 import mindustry.game.Team;
@@ -34,14 +29,13 @@ import mindustry.gen.Call;
 import mindustry.gen.Groups;
 import mindustry.gen.Player;
 import mindustry.maps.Map;
-import mindustry.mod.Plugin;
 import mindustry.net.Administration.Config;
 import mindustry.net.Administration.PlayerInfo;
 import mindustry.net.Packets.KickReason;
 import mindustry.type.UnitType;
 
 
-public class moreCommandsPlugin extends Plugin {
+public class moreCommandsPlugin extends mindustry.mod.Plugin {
 	arc.util.Timer.Task task;
     private double ratio = 0.6;
     private ArrayList<String> votesVNW = new ArrayList<>(), votesRTV = new ArrayList<>(), rainbowedPlayers = new ArrayList<>(), effects = new ArrayList<>();
@@ -61,10 +55,10 @@ public class moreCommandsPlugin extends Plugin {
         	votesVNW.clear();
             votesRTV.clear();
         });
-        
-        Events.on(PlayerConnect.class, e -> {
+
+        Events.on(mindustry.game.EventType.PlayerConnect.class, e -> {
         	//kick the player if there is [Server], [server], or @a in his nickname
-        	nameCheck(e.player, new String[]{"[Server]", "[server]", "@a", "@p", "~"});
+        	nameCheck(e.player, new String[]{"[Server]", "[server]", "@a", "@p", "@t", "~"});
         	
         	//prevent to duplicate nicknames
         	for (Player p : Groups.player) {
@@ -75,16 +69,15 @@ public class moreCommandsPlugin extends Plugin {
         	if (Strings.stripColors(e.player.name).equals("")) e.player.kick(KickReason.nameEmpty);
         });
 
-        
         Events.on(PlayerJoin.class, e -> {
         	//for me =)
-        	if (e.player.uuid().equals("k6uyrb9D3dEAAAAArLs28w==") && niceWelcome) Call.sendMessage("[scarlet]So cool![] " + NetClient.colorizeName(e.player.id, e.player.name) + "[scarlet] has connected!");
+        	if (e.player.uuid().equals("k6uyrb9D3dEAAAAArLs28w==") && niceWelcome) Call.sendMessage("[scarlet]\uE80F " + NetClient.colorizeName(e.player.id, e.player.name) + "[scarlet] has connected! \uE80F");
         	
         	//unpause the game if one player is connected
         	if (Groups.player.size() == 1 && autoPause) {
         		state.serverPaused = false;
         		Log.info("auto-pause: " + Groups.player.size() + " player connected -> Game unpaused...");
-        		Call.sendMessage("[scarlet][Server][]: Game unpaused...");
+        		Call.sendMessage("[scarlet][Server]:[] Game unpaused...");
         	}
         });
         
@@ -99,11 +92,10 @@ public class moreCommandsPlugin extends Plugin {
         	if(rainbowedPlayers.contains(e.player.uuid())) rainbowedPlayers.remove(e.player.uuid());
         	if(rememberSpectate.containsKey(e.player)) rememberSpectate.remove(e.player);
         	if(godmodPlayers.containsKey(e.player)) godmodPlayers.remove(e.player);
-        	
         });
 
         //recreate the tchat for the command /tchat
-        Events.on(PlayerChatEvent.class, e -> {
+        Events.on(mindustry.game.EventType.PlayerChatEvent.class, e -> {
         	if (!e.message.startsWith("/")) {
         		if (tchat) {
         			Call.sendMessage(e.message,  NetClient.colorizeName(e.player.id, e.player.name), e.player);
@@ -123,7 +115,7 @@ public class moreCommandsPlugin extends Plugin {
          * WARNING: Possibility of crashing the server!
          */
         //for players in god mode 
-        Events.on(BlockBuildBeginEvent.class, (e) -> {
+        Events.on(mindustry.game.EventType.BlockBuildBeginEvent.class, (e) -> {
         	Player player = e.unit.getPlayer();
         	
         	if (player != null) {
@@ -285,7 +277,7 @@ public class moreCommandsPlugin extends Plugin {
         	
         	int page = arg.length > 0 ? Strings.parseInt(arg[0]) : 1;
 			int lines = 8;
-			Seq<mindustry.maps.Map> list = maps.all();
+			Seq<Map> list = mindustry.Vars.maps.all();
             int pages = Mathf.ceil(list.size / lines);
             if (list.size % lines != 0) pages++;
             int index=(page-1)*lines;
@@ -419,7 +411,7 @@ public class moreCommandsPlugin extends Plugin {
                                     if (hue < 360) hue+=5;
                                     else hue = 0;
                                     
-                                    for (int i=0; i<5; i++) Call.effectReliable(Fx.bubble, player.x, player.y, 10, arc.graphics.Color.valueOf(Integer.toHexString(Color.getHSBColor(hue / 360f, 1f, 1f).getRGB()).substring(2)));
+                                    for (int i=0; i<5; i++) Call.effectReliable(mindustry.content.Fx.bubble, player.x, player.y, 10, arc.graphics.Color.valueOf(Integer.toHexString(Color.getHSBColor(hue / 360f, 1f, 1f).getRGB()).substring(2)));
                                     player.name = putColor(pData.normalizedName, hue);
                                     pData.setHue(hue);
                                     
