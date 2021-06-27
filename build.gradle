@@ -11,7 +11,7 @@ repositories{
 
 ext{
     //the build number that this plugin is made for
-    mindustryVersion = 'v126.1'
+    mindustryVersion = 'v126.2'
 }
 
 dependencies{
@@ -20,6 +20,7 @@ dependencies{
 }
 
 jar{
+    archiveFileName = "!moreCommands.jar"
     version=null
     from{
         configurations.runtimeClasspath.collect{it.isDirectory() ? it : zipTree(it)}
