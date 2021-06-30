@@ -31,6 +31,7 @@
 * `auto-pause` Pause the game if no one is connected.
 * `tchat <on|off>` Enabled/disabled the tchat.
 * `nice-welcome` Nice welcome for me.
+- [ ] `manage-command <list|name> [on|off]` Enable/Disable a command. /!\Requires a server restart.
 
 ### Feedback
 Open an issue if you have a suggestion.
