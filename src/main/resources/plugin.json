@@ -2,6 +2,6 @@
   "name": "moreCommands",
   "author": "Susideur (map)",
   "main": "moreCommandsPlugin",
-  "description": "This mindustry plugin add more commands for admins and players",
-  "version": 7.2
+  "description": "This mindustry plugin add more commands for admins and players.",
+  "version": 8
 }

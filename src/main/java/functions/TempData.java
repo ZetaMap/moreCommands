@@ -1,20 +1,19 @@
 package functions;
 
 import arc.struct.ObjectMap;
-import arc.util.Strings;
-
 import mindustry.gen.Player;
+
 
 public class TempData {
 	private static ObjectMap<Player, TempData> tempData = new ObjectMap<>(); // uuid, data
+	public final String realName;
+	public final String normalizedName;
 	public Integer hue;
-	public String realName;
-	public String normalizedName;
-
+	
 	private TempData(int hue, Player p){
         this.hue = hue;
         this.realName = p.name;
-        this.normalizedName = Strings.stripColors(p.name);
+        this.normalizedName = arc.util.Strings.stripColors(p.name);
     }
 	
 	public void setHue(int i) {

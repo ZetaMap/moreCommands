@@ -1,16 +1,14 @@
 package functions;
 
 import arc.struct.ArrayMap;
-import arc.struct.Seq;
-
-import mindustry.content.Fx;
 import mindustry.entities.Effect;
+
 
 public class Effects {
 	private static ArrayMap<String, Effects> effects = new ArrayMap<>();
-	public Effect effect;
-	public String name;
-	public int id;
+	public final Effect effect;
+	public final String name;
+	public final int id;
 	
 	private Effects (Effect effect, String name, int id) {
 		this.effect = effect;
@@ -30,12 +28,12 @@ public class Effects {
 		return effects.size;
 	}
 	
-	public static Seq<Effects> copy() {
+	public static arc.struct.Seq<Effects> copy() {
 		return effects.values().toArray();
 	}
 	
 	public static void init() {
-		for (java.lang.reflect.Field f : Fx.class.getDeclaredFields()) {
+		for (java.lang.reflect.Field f : mindustry.content.Fx.class.getDeclaredFields()) {
 			try { effects.put(f.getName(), new Effects((Effect) f.get(f), f.getName(), effects.size+1)); } 
 			catch (IllegalArgumentException | IllegalAccessException e) { e.printStackTrace(); }
 		}

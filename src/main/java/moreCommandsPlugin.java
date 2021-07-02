@@ -17,13 +17,12 @@ import arc.util.Strings;
 
 import functions.TempData;
 import functions.Players;
+import functions.CommandsManager;
 import functions.Effects;
 
 import mindustry.content.Blocks;
 import mindustry.core.NetClient;
-import mindustry.game.EventType.GameOverEvent;
-import mindustry.game.EventType.PlayerJoin;
-import mindustry.game.EventType.PlayerLeave;
+import mindustry.game.EventType;
 import mindustry.game.Team;
 import mindustry.gen.Call;
 import mindustry.gen.Groups;
@@ -40,23 +39,28 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
     private double ratio = 0.6;
     private ArrayList<String> votesVNW = new ArrayList<>(), votesRTV = new ArrayList<>(), rainbowedPlayers = new ArrayList<>(), effects = new ArrayList<>();
     private ObjectMap<Player, Team> rememberSpectate = new ObjectMap<>();
-    private static ObjectMap<Player, Integer> godmodPlayers = new ObjectMap<>();
+    private ObjectMap<Player, Integer> godmodPlayers = new ObjectMap<>();
     private boolean confirm = false, autoPause = false, tchat = true, niceWelcome = true;
+
+    //Called after all plugins have been created and commands have been registered.
+    public void init() { 
+    	netServer.admins.addChatFilter((p, m) -> null); //delete the tchat
+    	CommandsManager.init(); //init the commands manager
+    } 
     
-    public void init() { netServer.admins.addChatFilter((player, message) -> null); } //delete the tchat
 	public moreCommandsPlugin() {
 		Effects.init();
 		
-    	Events.on(PlayerJoin.class, e -> TempData.put(e.player)); // add player in TempPlayerData
-		Events.on(PlayerLeave.class, e -> TempData.remove(e.player)); // remove player in TempPlayerData
-
+    	Events.on(EventType.PlayerJoin.class, e -> TempData.put(e.player)); // add player in TempPlayerData
+		Events.on(EventType.PlayerLeave.class, e -> TempData.remove(e.player)); // remove player in TempPlayerData
+		
     	//clear VNW & RTV votes on game over
-        Events.on(GameOverEvent.class, e -> {
+        Events.on(EventType.GameOverEvent.class, e -> {
         	votesVNW.clear();
             votesRTV.clear();
         });
-
-        Events.on(mindustry.game.EventType.PlayerConnect.class, e -> {
+        
+        Events.on(EventType.PlayerConnect.class, e -> {
         	//kick the player if there is [Server], [server], or @a in his nickname
         	nameCheck(e.player, new String[]{"[Server]", "[server]", "@a", "@p", "@t", "~"});
         	
@@ -69,7 +73,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	if (Strings.stripColors(e.player.name).equals("")) e.player.kick(KickReason.nameEmpty);
         });
 
-        Events.on(PlayerJoin.class, e -> {
+        Events.on(EventType.PlayerJoin.class, e -> {
         	//for me =)
         	if (e.player.uuid().equals("k6uyrb9D3dEAAAAArLs28w==") && niceWelcome) Call.sendMessage("[scarlet]\uE80F " + NetClient.colorizeName(e.player.id, e.player.name) + "[scarlet] has connected! \uE80F");
         	
@@ -81,7 +85,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	}
         });
         
-        Events.on(PlayerLeave.class, e -> {
+        Events.on(EventType.PlayerLeave.class, e -> {
         	//pause the game if no one is connected
         	if (Groups.player.size()-1 < 1 && autoPause) {
         		state.serverPaused = true;
@@ -95,7 +99,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         });
 
         //recreate the tchat for the command /tchat
-        Events.on(mindustry.game.EventType.PlayerChatEvent.class, e -> {
+        Events.on(EventType.PlayerChatEvent.class, e -> {
         	if (!e.message.startsWith("/")) {
         		if (tchat) {
         			Call.sendMessage(e.message,  NetClient.colorizeName(e.player.id, e.player.name), e.player);
@@ -115,7 +119,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
          * WARNING: Possibility of crashing the server!
          */
         //for players in god mode 
-        Events.on(mindustry.game.EventType.BlockBuildBeginEvent.class, (e) -> {
+        Events.on(EventType.BlockBuildBeginEvent.class, e -> {
         	Player player = e.unit.getPlayer();
         	
         	if (player != null) {
@@ -130,12 +134,18 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         		}
         	}
         });
+        
+        Events.on(EventType.CommandIssueEvent.class, e -> {
+        	Log.info(e.toString());
+        });
     }
     
 
     //register commands that run on the server
     @Override
     public void registerServerCommands(CommandHandler handler){
+    	setHandler(handler, true);
+    	
     	handler.register("unban-all", "[y|n]", "Unban all IP and ID", arg -> {
     		if (arg.length == 1 && !confirm) {
     			Log.err("Use first: 'unban-all', before confirming the command.");
@@ -215,11 +225,97 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	niceWelcome = niceWelcome ? false : true;
         	Log.info(niceWelcome ? "Enabled" : "Disabled");
         });
+        
+        handler.removeCommand("whitelisted");
+        handler.removeCommand("whitelist-add");
+        handler.removeCommand("whitelist-remove");
+        handler.register("whitelist", "[add/remove] [ID]", "Only members of the whitelist can connect to the server.", arg -> {
+        	if (arg.length == 0) {
+        		Seq<PlayerInfo> whitelist = netServer.admins.getWhitelisted();
+        		
+        		if(whitelist.isEmpty()) Log.info("No whitelisted players found.");
+        		else {
+        			Log.info("Whitelist:");
+        			whitelist.each(p -> Log.info("- Name: @ / UUID: @", p.lastName, p.id));
+        		}
+        	} else {
+        		if (arg.length == 2) {
+        			PlayerInfo info = netServer.admins.getInfoOptional(arg[1]);
+        		    
+        			if(info == null) Log.err("Player ID not found. You must use the ID displayed when a player joins a server.");
+        		    else {
+        		    	switch (arg[0]) {
+        					case "add":
+        		            	netServer.admins.whitelist(arg[1]);
+        		            	Log.info("Player '@' has been whitelisted.", info.lastName);
+        		            	break;
+        				
+        					case "remove":
+        						netServer.admins.unwhitelist(arg[1]);
+        			            Log.info("Player '@' has been un-whitelisted.", info.lastName);
+        						break;
+        				
+        					default:
+        						Log.err("Invalid arguments");
+        		    	}
+        			}
+        		} else Log.err("Invalid arguments");
+        	}
+        });
+        
+        handler.register("manage-commands", "<list|commandName> [on|off]", "Enable/Disable a command. /!\\Requires server restart to apply changes.", arg -> {
+        	if (arg[0].equals("list")) {
+        		StringBuilder builder = new StringBuilder();
+        		Seq<CommandsManager> client = new Seq<>();
+        		Seq<CommandsManager> server = new Seq<>();
+        		CommandsManager.copy().forEach(command -> {
+        			if (command.name.startsWith("/")) client.add(command);
+        			else server.add(command);
+        		});
+        		int best1 = bestLength(client);
+        		int best2 = bestLength(server);
+
+        		Log.info("List of all commands: ");
+        		Log.info("| Server commands: Total:" + server.size + createSpaces(1+best2) + "Client commands: Total:" + client.size);
+        		for (int i=0; i<Math.max(client.size, server.size); i++) {
+        			try { builder.append("| | Name: " + server.get(i).name + createSpaces(best2-server.get(i).name.length()) + " - Enabled: " + server.get(i).isActivate + (server.get(i).isActivate ? " " : ""));
+        			} catch (IndexOutOfBoundsException e) { builder.append("|" + createSpaces(best1+20)); }
+        			try { builder.append(" | Name: " + client.get(i).name + createSpaces(best1-client.get(i).name.length()) + " - Enabled: " + client.get(i).isActivate);
+        			} catch (IndexOutOfBoundsException e) {}
+        			
+        			Log.info(builder.toString());
+        			builder = new StringBuilder();
+        		}
+        	} else {
+        		Boolean command = CommandsManager.get(arg[0]);
+        		
+        		if (command == null) Log.err("This command doesn't exist!");
+        		else {
+        			switch (arg[1]) {
+        				case "on": case "true": case "1":
+        					CommandsManager.set(arg[0], true);
+        					break;
+        				
+        				case "off": case "false": case "0":
+        					CommandsManager.set(arg[0], false);
+        					break;
+        				
+        				default:
+        					Log.err("Invalid value");
+        					return;
+        			}
+        			CommandsManager.save();
+        			CommandsManager.update();
+        		}
+        	}
+        });
     }
     
     //register commands that player can invoke in-game
     @Override
     public void registerClientCommands(CommandHandler handler){
+    	setHandler(handler, false);
+    	
     	handler.removeCommand("help");
     	handler.<Player>register("help", "[page]", "Lists all commands", (arg, player) -> {
         	if(arg.length > 0 && !Strings.canParseInt(arg[0])){
@@ -227,11 +323,10 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
                 return;
             }
         	
-        	int adminCommands = player.admin ? 0 : 13;
-        	int commandsPerPage = 8;
-            int page = arg.length > 0 ? Strings.parseInt(arg[0]) : 1;
-            int pages = Mathf.ceil(((float)handler.getCommandList().size - adminCommands) / commandsPerPage);
-            
+        	int adminCommands = player.admin ? 0 : 13, 
+        			commandsPerPage = 8,
+        			page = arg.length > 0 ? Strings.parseInt(arg[0]) : 1,
+        			pages = Mathf.ceil(((float)handler.getCommandList().size - adminCommands) / commandsPerPage);
             page --;
 
             if(page >= pages || page < 0){
@@ -274,13 +369,12 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
                 player.sendMessage("[scarlet]'page' must be a number.");
                 return;
             }
-        	
-        	int page = arg.length > 0 ? Strings.parseInt(arg[0]) : 1;
-			int lines = 8;
-			Seq<Map> list = mindustry.Vars.maps.all();
-            int pages = Mathf.ceil(list.size / lines);
-            if (list.size % lines != 0) pages++;
-            int index=(page-1)*lines;
+        	Seq<Map> list = mindustry.Vars.maps.all();
+        	int page = arg.length > 0 ? Strings.parseInt(arg[0]) : 1,
+        			lines = 8, 
+        			pages = Mathf.ceil(list.size / lines), 
+        			index=(page-1)*lines;
+        	if (list.size % lines != 0) pages++;
             Map map;
             
             if (page > pages || page < 1) {
@@ -337,7 +431,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             
             votesRTV.clear();
             Call.sendMessage("[scarlet]RTV: [green]Vote passed, changing map...");
-            Events.fire(new GameOverEvent(Team.crux));
+            Events.fire(new EventType.GameOverEvent(Team.crux));
         });
 
         handler.<Player>register("info-all", "[ID|username...]", "Get all player information", (arg, player) -> {
@@ -403,7 +497,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         			rainbowedPlayers.add(player.uuid());
         			TempData pData = TempData.get(player);
                
-        			Thread rainbowLoop = new Thread() {
+        			new Thread() {
         				public void run() {
         					while(rainbowedPlayers.contains(player.uuid())) {
         						try {
@@ -421,8 +515,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
                                 }
         					}
         				}
-        			};
-        			rainbowLoop.start();
+        			}.start();
         		}
         	} else {
         		if (player.admin) {
@@ -517,7 +610,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         		} else player.sendMessage("[green]Start particles effect [accent]" + effect.id + "[scarlet] - []" + effect.name);
         	}
 
-        	Thread effectsLoop = new Thread() {
+        	new Thread() {
         		public void run() {
         			while(effects.contains(player.uuid())) {
         				try { 
@@ -526,8 +619,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         				} catch (InterruptedException e) { e.printStackTrace(); }
         			}
         		}
-        	};
-        	effectsLoop.start();
+        	}.start();
         });
        
         handler.<Player>register("team", "[teamname|list|vanish] [username...]","change team", (args, player) ->{
@@ -662,7 +754,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             			builder.append("[white] - [lightgray]Names: [accent]").append(p.names).append("[white] - [lightgray]ID: [accent]'").append(p.id).append("'");
             			if (p.admin) builder.append("[white] | [scarlet]Admin");
             			if (p.banned) builder.append("[white] | [orange]Banned");
-            			Player online = Groups.player.find(pl -> pl.uuid().equalsIgnoreCase(p.id));
+            			Player online = Groups.player.find(pl -> pl.uuid().equals(p.id));
             			if (online != null) builder.append("[white] | [green]Online");
             			builder.append("\n");
             		}
@@ -714,16 +806,23 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	Players.warn(player, "This will destroy all the blocks which will be hampered by the construction of the core.");
         	
         	mindustry.world.Block core;
-        	if (arg[0].equals("small")) core = Blocks.coreShard;
-        	else if (arg[0].equals("medium")) core = Blocks.coreFoundation; 
-        	else if (arg[0].equals("big")) core = Blocks.coreNucleus;
-        	else {
-        		Players.err(player, "Core type not found:[] Please use arguments small, medium, big.");
-                return;
+        	switch (arg[0]) {
+        		case "small": 
+        			core = Blocks.coreShard;
+        			break;
+        		case "meduim": 
+        			core = Blocks.coreFoundation;
+        			break;
+        		case "big": 
+        			core = Blocks.coreNucleus;
+        			break;
+        		default: 
+        			core = null;
         	}
-
-            Call.constructFinish(player.tileOn(), core, player.unit(), (byte)0, player.team(), false);
-            player.sendMessage(player.tileOn().block() == core ? "[green]Core build." : "[scarlet]Error: Core not build.");
+        	if (core != null) {
+        		Call.constructFinish(player.tileOn(), core, player.unit(), (byte)0, player.team(), false);
+        		player.sendMessage(player.tileOn().block() == core ? "[green]Core build." : "[scarlet]Error: Core not build.");
+        	} else Players.err(player, "Core type not found:[] Please use arguments small, medium, big.");
         });
         
         handler.<Player>register("tp", "<name|x,y> [to_name|x,y]", "Teleport to position or player *", (arg, player) -> {
@@ -826,32 +925,32 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	
         	if (arg.length >= 3) {
         		switch (arg[2]) {
-            		case "~":
+            		case "~": 
             			team = target.team();
             			break;
-            		case "sharded":
+            		case "sharded": 
             			team = Team.sharded;
             			break;
-            		case "blue":
+            		case "blue": 
             			team = Team.blue;
             			break;
-            		case "crux":
+            		case "crux": 
             			team = Team.crux;
             			break;
-            		case "derelict":
+            		case "derelict": 
             			team = Team.derelict;
             			break;
-            		case "green":
+            		case "green": 
             			team = Team.green;
             			break;
-            		case "purple":
+            		case "purple": 
             			team = Team.purple;
             			break;
-            		default:
+            		default: 
             			Players.err(player, "available teams: ");
             			for (Team teamList : Team.baseTeams) builder.append(" - [accent]" + teamList.name + "[]\n");
             			player.sendMessage(builder.toString());
-            			return;
+            			return;	
         		}
         	} else team = player.team();
        
@@ -983,11 +1082,37 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         
         handler.<Player>register("unban", "<ip|ID>", "Unban a person", (arg, player) -> {
         	if (!Players.adminCheck(player)) return;
-
+       
             if (netServer.admins.unbanPlayerIP(arg[0]) || netServer.admins.unbanPlayerID(arg[0])) Players.info(player, "Unbanned player: [accent]%s", arg[0]);
             else Players.err(player, "That IP/ID is not banned!");
         });
-        
+
+    }
+    
+    private String createSpaces(int length) {
+    	String spaces = "";
+    	for (int i=0; i<length; i++) spaces+=" ";
+    	return spaces;
+    }
+    
+    private int bestLength(Seq<CommandsManager> list) {
+    	int best = 0;
+    	
+    	for (CommandsManager str : list) {
+    		if (str.name.length() > best) best = str.name.length();
+    	}
+    	return best;
+    }
+    
+    private void setHandler(CommandHandler handler, boolean isServer) {
+    	new Thread() {
+			public void run() {
+				try {
+					Thread.sleep(1000);
+					CommandsManager.load(handler, isServer);
+				} catch (InterruptedException e) { e.printStackTrace(); }
+			}
+    	}.start();
     }
 
     private void nameCheck(Player player, String[] bannedNames) {

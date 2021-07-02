@@ -4,6 +4,7 @@ import arc.util.Strings;
 import mindustry.gen.Groups;
 import mindustry.gen.Player;
 
+
 public class Players {
 	public static void err(Player player, String fmt, Object... msg) {
     	player.sendMessage("[scarlet]Error: " + String.format(fmt, msg));
