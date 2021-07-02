@@ -134,10 +134,6 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         		}
         	}
         });
-        
-        Events.on(EventType.CommandIssueEvent.class, e -> {
-        	Log.info(e.toString());
-        });
     }
     
 
@@ -291,21 +287,26 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         		
         		if (command == null) Log.err("This command doesn't exist!");
         		else {
-        			switch (arg[1]) {
-        				case "on": case "true": case "1":
-        					CommandsManager.set(arg[0], true);
-        					break;
+        			if (arg.length == 2) {
+        				switch (arg[1]) {
+        					case "on": case "true": case "1":
+        						CommandsManager.set(arg[0], true);
+        						Log.info("Enabled ...");
+        						break;
         				
-        				case "off": case "false": case "0":
-        					CommandsManager.set(arg[0], false);
-        					break;
+        					case "off": case "false": case "0":
+        						CommandsManager.set(arg[0], false);
+        						Log.info("Disabled ...");
+        						break;
         				
-        				default:
-        					Log.err("Invalid value");
-        					return;
-        			}
-        			CommandsManager.save();
-        			CommandsManager.update();
+        					default:
+        						Log.err("Invalid value");
+        						return;
+        				}
+        				CommandsManager.save();
+        				CommandsManager.update(handler);
+        			} else Log.info("The command '" + arg[0] + "' is currently " + (command ? "enabled" : "disabled"));
+        			
         		}
         	}
         });

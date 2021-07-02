@@ -3,6 +3,7 @@ package functions;
 import arc.Core;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
+import arc.util.CommandHandler;
 
 
 public class CommandsManager {
@@ -45,19 +46,16 @@ public class CommandsManager {
 		Core.settings.forceSave();
 	}
 	
-	public static void update() {
+	public static void update(CommandHandler handler) {
 		commands.forEach(command -> {
 			if (command.value != temp.get(command.key)) {
-				arc.util.Log.warn("Changes have been made, the server will shut down in 10 seconds for them to be applied.");
-				try { Thread.sleep(10000); } 
-				catch (InterruptedException e) { Core.app.exit(); }
-				Core.app.exit();
+				recreateHost(handler);
 				return;
 			}
 		});
 	}
 
-	public static void load(arc.util.CommandHandler handler, boolean isServer) {
+	public static void load(CommandHandler handler, boolean isServer) {
 		while (!canLoad) {}
 		
 		handler.getCommandList().forEach(command -> {
@@ -92,5 +90,13 @@ public class CommandsManager {
 		} else save();
 		
 		canLoad = true;
+	}
+	
+	private static void recreateHost(CommandHandler handler) {
+		handler.removeCommand("host");
+		
+		handler.register("host", "[mapname] [mode]", "Open the server. Will default to survival and a random map if not specified.", arg -> {
+			arc.util.Log.warn("Changes have been made. Please restart the server for them to take effect. (tip: write 'exit' to shut down the server)");
+		});
 	}
 }

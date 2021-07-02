@@ -8,7 +8,7 @@ public class TempData {
 	private static ObjectMap<Player, TempData> tempData = new ObjectMap<>(); // uuid, data
 	public final String realName;
 	public final String normalizedName;
-	public Integer hue;
+	public int hue;
 	
 	private TempData(int hue, Player p){
         this.hue = hue;
