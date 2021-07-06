@@ -10,7 +10,7 @@
 * `/msg <username> <message...>` Send a message to a player. (replace all spaces with '_' in the name).
 * `/help [page]` Recreate /help to display only commands related to your rank.
 * `/effect [list|name|id] [page|ID|username...]` Gives you a particle effect. /!\May cause errors
-- [ ] `/r <message...>` Reply to the last private message received.
+* `/r <message...>` Reply to the last private message received.
 
 ### Admin Only Commands
 * `/team [teamname|list|vanish] [username...]` This command lets admins change teams.
