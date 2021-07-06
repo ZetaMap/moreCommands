@@ -49,28 +49,36 @@ public class CommandsManager {
 	public static void update(CommandHandler handler) {
 		commands.forEach(command -> {
 			if (command.value != temp.get(command.key)) {
-				recreateHost(handler);
+				handler.removeCommand("host");
+				
+				handler.register("host", "[mapname] [mode]", "Open the server. Will default to survival and a random map if not specified.", arg -> {
+					arc.util.Log.warn("Changes have been made. Please restart the server for them to take effect. (tip: write 'exit' to shut down the server)");
+				});
 				return;
 			}
 		});
 	}
 
-	public static void load(CommandHandler handler, boolean isServer) {
+	public static void load(CommandHandler handler, boolean isClient) {
 		while (!canLoad) {}
 		
 		handler.getCommandList().forEach(command -> {
-			if (!commands.containsKey((isServer ? "" : "/") + command.text)) 
-				commands.put((isServer ? "" : "/") + command.text, true);
+			if (!commands.containsKey(handler.getPrefix() + command.text)) 
+				commands.put(handler.getPrefix() + command.text, true);
 		});
-		save();
+		
+		Seq<String> list = (isClient ? commands.keys().toSeq().filter(c -> c.startsWith(handler.getPrefix())) : commands.keys().toSeq().filter(c -> !c.startsWith(mindustry.Vars.netServer.clientCommands.getPrefix()))),
+				comparator = handler.getCommandList().map(command -> command.text);
 		
 		commands.forEach(command -> { 
-			if (!command.value) {
-				if (command.key.startsWith("/")) handler.removeCommand(command.key.substring(1));
-				else handler.removeCommand(command.key); 
-			}	
+			if (!command.value) handler.removeCommand(command.key.substring(handler.getPrefix().length()));
 		});
+		
+		comparator.each(c -> list.remove(handler.getPrefix() + c));
+		list.each(c -> commands.remove(c));
+		
 		temp.putAll(commands);
+		save();
 	}
 	
 	public static void init() {
@@ -92,11 +100,8 @@ public class CommandsManager {
 		canLoad = true;
 	}
 	
-	private static void recreateHost(CommandHandler handler) {
-		handler.removeCommand("host");
-		
-		handler.register("host", "[mapname] [mode]", "Open the server. Will default to survival and a random map if not specified.", arg -> {
-			arc.util.Log.warn("Changes have been made. Please restart the server for them to take effect. (tip: write 'exit' to shut down the server)");
-		});
+	public static void clearSave() {
+		Core.settings.put("handlerManager", "");
+		Core.settings.forceSave();
 	}
 }
