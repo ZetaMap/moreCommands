@@ -33,7 +33,7 @@
 * `tchat <on|off>` Enabled/disabled the tchat.
 * `nice-welcome` Nice welcome for me.
 * `manage-commands <list|commandName> [on|off]` Enable/Disable a command. /!\\Requires server restart to apply changes.
-* `clear-map [y|n]` Kill all units and destroy all blocks except cores and walls, on the current map.
+* `clear-map [y|n]` Kill all units and destroy all blocks except cores, on the current map.
 
 ### Feedback
 Open an issue if you have a suggestion.
