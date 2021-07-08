@@ -68,8 +68,6 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         });
         
         Events.on(EventType.PlayerConnect.class, e -> {
-        	e.player.name = e.player.name.strip(); //remove spaces at left and at rigth in nickname
-        	
         	//kick the player if there is [Server], [server], or @a in his nickname
         	nameCheck(e.player, new String[]{"[Server]", "[server]", "@a", "@p", "@t", "~"});
         	
@@ -699,7 +697,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	}.start();
         });
         
-        handler.<Player>register("team", "[teamname|list|vanish] [username...]","change team", (args, player) ->{
+        handler.<Player>register("team", "[teamname|list|vanish] [username...]","Change team", (args, player) ->{
             if(!player.admin()){
                 player.sendMessage("[scarlet]Only admins can change team !");
                 return;
@@ -799,7 +797,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	Call.sendMessage(arg[0], "[scarlet]<Admin>[]" + NetClient.colorizeName(player.id, player.name), player);
         });
         
-        handler.<Player>register("players", "<all|online|ban>", "Gives the list of players according to the type of filter given", (arg, player) -> {
+        handler.<Player>register("players", "<all|online|ban>", "Gives the list of players", (arg, player) -> {
         	if (!Players.adminCheck(player)) return;
         	
         	int size = 0;
@@ -986,6 +984,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         			target = player;
         			x = (int) target.x;
         			y = (int) target.y;
+        			newArg.remove(0);
         		} else {
         			Search result = new Search(newArg.toString(" "), player);
         			newArg.set(new Seq<String>().addAll(result.rest));
@@ -1001,7 +1000,6 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         				y = result.XY[1]*8;
         			}
         		}
-        		if (!newArg.isEmpty()) newArg.remove(0);
         		
         		if (!newArg.isEmpty()) {
         			switch (newArg.get(0)) {
@@ -1027,7 +1025,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             				team = Team.purple;
             				break;
             			default: 
-            				Players.err(player, "available teams: ");
+            				Players.err(player, "Team not found! []\navailable teams: ");
             				for (Team teamList : Team.baseTeams) builder.append(" - [accent]" + teamList.name + "[]\n");
             				player.sendMessage(builder.toString());
             				return;	
