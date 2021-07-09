@@ -952,15 +952,14 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             	target.unit().set(co[0]*8, co[1]*8);
 				Call.setPosition(target.con, co[0]*8, co[1]*8);
 				new Thread() {
-            		public void run(Player p) {
+            		public void run() {
             			try {
-            				p.sendMessage(p.con.lastReceivedClientTime + 100+ "");
-            				Thread.sleep(p.con.lastReceivedClientTime + 100);
+            				Thread.sleep(100);
 							Config.strict.set(true);
 							Core.settings.forceSave();
 						} catch (InterruptedException e) {}
             		}
-            	}.run(target);
+            	}.start();
             } else {
             	target.unit().set(co[0]*8, co[1]*8);
             	Call.setPosition(target.con, co[0]*8, co[1]*8);
