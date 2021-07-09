@@ -15,6 +15,7 @@ import arc.util.CommandHandler;
 import arc.util.Log;
 import arc.util.Strings;
 
+import util.Bundles;
 import util.CommandsManager;
 import util.CommandsManager.Commands;
 import util.Effects;
@@ -53,6 +54,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
     } 
     
 	public moreCommandsPlugin() {
+		Bundles.init();
 		Effects.init();
 
     	//clear VNW & RTV votes and disabled it on game over
@@ -950,14 +952,15 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             	target.unit().set(co[0]*8, co[1]*8);
 				Call.setPosition(target.con, co[0]*8, co[1]*8);
 				new Thread() {
-            		public void run() {
+            		public void run(Player p) {
             			try {
-            				Thread.sleep(100);
+            				p.sendMessage(p.con.lastReceivedClientTime + 100+ "");
+            				Thread.sleep(p.con.lastReceivedClientTime + 100);
 							Config.strict.set(true);
 							Core.settings.forceSave();
 						} catch (InterruptedException e) {}
             		}
-            	}.start();
+            	}.run(target);
             } else {
             	target.unit().set(co[0]*8, co[1]*8);
             	Call.setPosition(target.con, co[0]*8, co[1]*8);
@@ -1122,9 +1125,8 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             if (target == null) Players.err(player, "Nobody with that name or ID could be found...");
             else {
                 Call.sendMessage("[scarlet]/!\\" + NetClient.colorizeName(target.id, target.name) + "[scarlet] has been kicked of the server.");
-                // I do this while waiting to find the bundles
-                target.kick("You have been kicked from the server!\n[scarlet]Reason: []" + (arg.length == 2 ? String.join(" ", result.rest) : "<unknown>"));
-                //target.kick(KickReason.kick.toString() + "\n[scarlet]Reason: []" + (arg.length == 2 ? String.join(" ", result.rest) : "<unknown>"));
+                if (Bundles.dontUseBundle) target.kick("You have been kicked from the server!\n[scarlet]Reason: []" + (arg.length == 2 ? String.join(" ", result.rest) : "<unknown>"));
+                else target.kick(KickReason.kick.toString() + "\n[scarlet]Reason: []" + (arg.length == 2 ? String.join(" ", result.rest) : "<unknown>"));
             }
         });   
         
@@ -1149,9 +1151,8 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	else {
         		netServer.admins.banPlayer(target.uuid());
         		Call.sendMessage("[scarlet]/!\\ " + NetClient.colorizeName(target.id, target.name) + "[scarlet] has been banned of the server.");
-        		// I do this while waiting to find the bundles
-        		target.kick("You are banned on this server!\n[scarlet]Reason: []" + (arg.length == 2 ? String.join(" ", result.rest) : "<unknown>"));
-        		//target.kick(KickReason.banned.toString() + "\n[scarlet]Reason: []" + (arg.length == 2 ? String.join(" ", result.rest) : "<unknown>"));
+        		if (Bundles.dontUseBundle) target.kick("You are banned on this server!\n[scarlet]Reason: []" + (arg.length == 2 ? String.join(" ", result.rest) : "<unknown>"));
+        		else target.kick(KickReason.banned.toString() + "\n[scarlet]Reason: []" + (arg.length == 2 ? String.join(" ", result.rest) : "<unknown>"));
         	}
         });
         

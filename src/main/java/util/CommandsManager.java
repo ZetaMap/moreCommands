@@ -60,7 +60,8 @@ public class CommandsManager {
 				commands.put(handler.getPrefix() + command.text, true);
 		});
 		
-		Seq<String> list = (isClient ? commands.keys().toSeq().filter(c -> c.startsWith(handler.getPrefix())) : commands.keys().toSeq().filter(c -> !c.startsWith(mindustry.Vars.netServer.clientCommands.getPrefix()))),
+		Seq<String> list = (isClient ? commands.keys().toSeq().filter(c -> c.startsWith(handler.getPrefix())) : 
+					commands.keys().toSeq().filter(c -> !c.startsWith(mindustry.Vars.netServer.clientCommands.getPrefix()))),
 				comparator = handler.getCommandList().map(command -> command.text);
 		
 		commands.forEach(command -> { 
