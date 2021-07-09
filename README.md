@@ -48,7 +48,7 @@ You have just run `build.bat` and the plugin will compile automatically.
 ### Installing
 
 Simply place the output jar from the step above in your server's `config/mods` directory and restart the server.
-List your currently installed plugins by running the `plugins` command.
+List your currently installed plugins by running the `mods` command.
 
 ### Thanks to...
 This plugin is a grouping of other plugins, with modifications or upgrades.
