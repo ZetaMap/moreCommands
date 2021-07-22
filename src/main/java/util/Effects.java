@@ -35,7 +35,8 @@ public class Effects {
 	public static void init() {
 		for (java.lang.reflect.Field f : mindustry.content.Fx.class.getDeclaredFields()) {
 			try { effects.put(f.getName(), new Effects((Effect) f.get(f), f.getName(), effects.size+1)); } 
-			catch (IllegalArgumentException | IllegalAccessException e) { e.printStackTrace(); }
+			catch (IllegalArgumentException e) { e.printStackTrace(); } 
+			catch (IllegalAccessException e) {}
 		}
 	}
 }
