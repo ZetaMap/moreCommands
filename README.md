@@ -35,6 +35,7 @@
 * `manage-commands <list|commandName> [on|off]` Enable/Disable a command. /!\\Requires server restart to apply changes.
 * `clear-map [y|n]` Kill all units and destroy all blocks except cores, on the current map.
 * `gamemode [name]` Change the gamemode of the current map
+* `blacklist [add|remove] [name]` Players using a nickname in the blacklist cannot connect.
 
 ### Feedback
 Open an issue if you have a suggestion.
