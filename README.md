@@ -23,14 +23,14 @@
 * `/kill [@p|@a|@t|username...]` Kill a player. @a: all unit. @p: all player. @t: all unit in actual team.
 * `/tp <name|x,y> [to_name|x,y...]` Teleport to a coordinate or a player.
 * `/core <small|medium|big>` Spawn a core to your corrdinate.
-* `/tchat <on|off>` Enabled/disabled the tchat.
+* `/tchat [on|off]` Enabled/disabled the tchat.
 * `/spawn <unit> [x,y|username] [teamname] [count...]` Spawn a unit ('~': your team or coordinates).
 * `/godmode [username...]` [God]: I'm divine!
 
 ### Server Commands
 * `unban-all [y|n]` Unban all ID and IP.
 * `auto-pause` Pause the game if no one is connected.
-* `tchat <on|off>` Enabled/disabled the tchat.
+* `tchat [on|off]` Enabled/disabled the tchat.
 * `nice-welcome` Nice welcome for me.
 * `manage-commands <list|commandName> [on|off]` Enable/Disable a command. /!\\Requires server restart to apply changes.
 * `clear-map [y|n]` Kill all units and destroy all blocks except cores, on the current map.
