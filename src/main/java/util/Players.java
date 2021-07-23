@@ -83,7 +83,7 @@ public class Players {
             this.hue = hue;
     		this.player = p;
             this.realName = p.name;
-            this.normalizedName = Strings.stripColors(p.name);
+            this.normalizedName = Strings.stripColors(p.name).strip();
         }
     	
     	public void setHue(int i) {

@@ -4,7 +4,7 @@ import static mindustry.Vars.netServer;
 import static mindustry.Vars.state;
 import static mindustry.Vars.world;
 
-import java.awt.Color;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import arc.Core;
@@ -14,7 +14,6 @@ import arc.struct.ObjectMap;
 import arc.struct.Seq;
 import arc.util.CommandHandler;
 import arc.util.Log;
-import arc.util.Strings;
 
 import mindustry.content.Blocks;
 import mindustry.core.NetClient;
@@ -38,12 +37,17 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
     	votesRTV = new ArrayList<>(), 
     	rainbowedPlayers = new ArrayList<>(), 
     	effects = new ArrayList<>(), 
-    	adminCommands = new Seq<String>().addAll("team", "am", "kick", "pardon", "ban", "unban", "players", "kill", "tp", "core", "tchat", "spawn", "godmode").list();
+    	adminCommands = new Seq<String>().addAll("team", "am", "kick", "pardon", "ban", "unban", "players", "kill", "tp", "core", "tchat", "spawn", "godmode").list(),
+    	bannedClients = new Seq<String>().addAll("VALVE", "tuttop", "CODEX", "IGGGAMES", "IgruhaOrg", "FreeTP.Org").list(),
+    	defaultBannedNames = new Seq<String>().addAll("[Server]", "[server]", "@a", "@p", "@t", "~").list(),
+    	defaultBannedIps = new ArrayList<>(),
+    	bannedIps = new ArrayList<>(),
+    	bannedNames = new ArrayList<>();
     private ObjectMap<Player, Team> rememberSpectate = new ObjectMap<>();
     private ObjectMap<String, Float> godmodPlayers = new ObjectMap<>();
     private Map selectedMap;
-    private double ratio = 0.6;
-    private boolean unbanConfirm = false, autoPause = false, tchat = true, niceWelcome = true, clearConfirm = false, canVote = true;
+    private float ratio = 0.6f;
+    private boolean unbanConfirm = false, autoPause = false, tchat = true, niceWelcome = true, clearConfirm = false, canVote = true, antiVpn = false;
    
     //Called after all plugins have been created and commands have been registered.
     public void init() { 
@@ -70,15 +74,14 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         
         Events.on(EventType.PlayerConnect.class, e -> {
         	//kick the player if there is [Server], [server], or @a in his nickname
-        	nameCheck(e.player, new String[]{"[Server]", "[server]", "@a", "@p", "@t", "~"});
-        	
-        	//prevent to duplicate nicknames
-        	for (Player p : Groups.player) 
-        		if (Strings.stripColors(p.name).equals(Strings.stripColors(e.player.name))) e.player.kick(KickReason.nameInUse);
-        	
+        	nameCheck(e.player);
         	
         	//check if the nickname is empty without colors
         	if (Strings.stripColors(e.player.name).isBlank()) e.player.kick(KickReason.nameEmpty);
+        	
+        	//prevent to duplicate nicknames
+        	for (Player p : Groups.player) 
+        		if (Strings.stripColors(p.name).strip().equals(Strings.stripColors(e.player.name).strip())) e.player.kick(KickReason.nameInUse);
 
         	TempData.put(e.player); //add player in TempData
         	MSG.setEmpty(e.player);
@@ -86,7 +89,8 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
 
         Events.on(EventType.PlayerJoin.class, e -> {
         	//for me =)
-        	if (e.player.uuid().equals("k6uyrb9D3dEAAAAArLs28w==") && niceWelcome) Call.sendMessage("[scarlet]\uE80F " + NetClient.colorizeName(e.player.id, e.player.name) + "[scarlet] has connected! \uE80F");
+        	if (e.player.uuid().equals("k6uyrb9D3dEAAAAArLs28w==") && niceWelcome) 
+        		Call.sendMessage("[scarlet]\uE80F " + NetClient.colorizeName(e.player.id, e.player.name) + "[scarlet] has connected! \uE80F");
         	
         	//unpause the game if one player is connected
         	if (Groups.player.size() == 1 && autoPause) {
@@ -199,7 +203,12 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
     		}
     	});
     	
-        handler.register("tchat", "<on|off>", "Enabled/disabled the tchat", arg -> {
+        handler.register("tchat", "[on|off]", "Enabled/disabled the tchat", arg -> {
+        	if (arg.length == 0) {
+        		Log.info("The tchat is currently @.", tchat ? "enabled" : "disabled");
+        		return;
+        	}
+        	
         	switch (arg[0]) {
         		case "on":
         			if (tchat) {
@@ -280,14 +289,14 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         		});
         		int best1 = bestLength(client);
         		int best2 = bestLength(server);
-
+        		
         		Log.info("List of all commands: ");
-        		Log.info("| Server commands: Total:" + server.size + createSpaces(1+best2) + "Client commands: Total:" + client.size);
+        		Log.info(Strings.fillAtRight("| Server commands: Total:" + server.size, 28+best2) + "Client commands: Total:" + client.size);
         		for (int i=0; i<Math.max(client.size, server.size); i++) {
-        			try { builder.append("| | Name: " + server.get(i).name + createSpaces(best2-server.get(i).name.length()) + " - Enabled: " + server.get(i).isActivate + (server.get(i).isActivate ? " " : ""));
-        			} catch (IndexOutOfBoundsException e) { builder.append("|" + createSpaces(best1+20)); }
-        			try { builder.append(" | Name: " + client.get(i).name + createSpaces(best1-client.get(i).name.length()) + " - Enabled: " + client.get(i).isActivate);
-        			} catch (IndexOutOfBoundsException e) {}
+        			try { builder.append(Strings.fillAtMiddle("| | Name: " + server.get(i).name, " - Enabled: " + (server.get(i).isActivate ? "true " : "false"), 27+best2)); } 
+        			catch (IndexOutOfBoundsException e) { builder.append("|" + Strings.createSpaces(best1+20)); }
+        			try { builder.append(Strings.fillAtRight(" | Name: " + client.get(i).name, 9+best1) + " - Enabled: " + client.get(i).isActivate); } 
+        			catch (IndexOutOfBoundsException e) {}
         			
         			Log.info(builder.toString());
         			builder = new StringBuilder();
@@ -383,6 +392,149 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             }
         });
         
+        handler.register("blacklist", "<list|add|remove|clear> <name|ip> [value...]", 
+        		"Players using a nickname or ip in the blacklist cannot connect to the server (spaces on the sides and colors are cut off when checking out)", arg -> {
+        	ArrayList<String> list = new ArrayList<>();
+        	list.addAll(defaultBannedNames);
+        	list.addAll(bannedClients);
+        	
+        	if (arg[0].equals("list")) {
+        		StringBuilder builder = new StringBuilder();
+        		
+        		if (arg[1].equals("name")) {
+        			int best = Strings.bestLength(bannedNames);
+            		int max = best > 18+String.valueOf(bannedNames.size()).length() ? best+4 : 23+String.valueOf(bannedNames.size()).length();
+            		
+            		Log.info("List of banned names:");
+            		Log.info(Strings.fillAtRight("| Custom list: Total: " + bannedNames.size(), max) + "  Default list: Total: " + list.size());
+            		for (int i=0; i<Math.max(bannedNames.size(), list.size()); i++) {
+            			try { builder.append(Strings.fillAtRight("| | " + bannedNames.get(i), max+1)); } 
+            			catch (IndexOutOfBoundsException e) { builder.append("|" + Strings.createSpaces(max)); }
+            			try { builder.append(" | " + list.get(i)); } 
+            			catch (IndexOutOfBoundsException e) {}
+            			
+            			Log.info(builder.toString());
+            			builder = new StringBuilder();
+            		}
+        		
+        		} else if (arg[1].equals("ip")) {
+        			int best = Strings.bestLength(bannedIps);
+            		int max = best > 18+String.valueOf(bannedIps.size()).length() ? best+4 : 23+String.valueOf(bannedIps.size()).length();
+
+            		Log.info("List of banned ip:");
+            		Log.info(Strings.fillAtRight("| Custom list: Total: " + bannedIps.size(), max) + "  Default list: Total: " + defaultBannedIps.size() + " (Anti VPN list)");
+            		for (int i=0; i<Math.max(bannedIps.size(), defaultBannedIps.size()); i++) {
+            			try { builder.append(Strings.fillAtRight("| | " + bannedIps.get(i), max+1)); } 
+            			catch (IndexOutOfBoundsException e) { 
+            				builder.append("|" + Strings.createSpaces(max)); 
+            				if (i > 20) break;
+            			}
+            			try { 
+            				if (i == 20) builder.append(" | ...." + (defaultBannedIps.size()-i) + " more");
+            				else if (i < 20) builder.append(" | " + defaultBannedIps.get(i));
+            			} catch (IndexOutOfBoundsException e) {}
+            			
+            			Log.info(builder.toString());
+            			builder = new StringBuilder();
+            			
+            			if (i > 5 && bannedIps.size() < 5) break;
+            		}
+        		
+        		} else Log.err("Invalid argument. possible arguments: name, ip");
+        		
+        	} else if (arg[0].equals("add")) {
+        		if (arg.length == 3) {
+        			if (arg[1].equals("name")) {
+            			if (arg[2].length() > 40) Log.err("A nickname cannot exceed 40 characters");
+            			else if (bannedNames.contains(arg[2])) Log.err("'@' is already in the blacklist", arg[2]);
+            			else {
+            				bannedNames.add(arg[2]);
+            				saveSettings();
+            				Log.info("'@' was added to the blacklist", arg[2]);
+            			}
+            			
+            		} else if (arg[1].equals("ip")) {
+            			if (arg[2].split("\\.").length != 4 || !Strings.canParseIntList(arg[2].split("\\."))) Log.err("Incorrect format for IPv4");
+            			else if (bannedIps.contains(arg[2])) Log.err("'@' is already in the blacklist", arg[2]);
+            			else {
+            				bannedIps.add(arg[2]);
+            				saveSettings();
+            				Log.info("'@' was added to the blacklist", arg[2]);
+            			}
+            			
+            		} else Log.err("Invalid argument. possible arguments: name, ip");
+        		} else Log.err("Please enter a value");
+        	
+        	} else if (arg[0].equals("remove")) {
+        		if (arg.length == 3) {
+        			if (arg[1].equals("name")) {
+        				if (!bannedNames.contains(arg[2])) Log.err("'@' isn't in custom blacklist", arg[2]);
+            			else if (list.contains(arg[2])) Log.err("You can't remove a name from the default list");	
+            			else {
+            				bannedNames.remove(arg[2]);
+            				saveSettings();
+            				Log.info("'@' has been removed from the blacklist", arg[2]);
+            			}
+            			
+            		} else if (arg[1].equals("ip")) {
+            			if (arg[2].split(".").length != 4 || !Strings.canParseIntList(arg[2].split("."))) Log.err("Incorrect format for IPv4");
+            			else {
+            				bannedIps.remove(arg[2]);
+            				saveSettings();
+            				Log.info("'@' has been removed from the blacklist", arg[2]);
+            			}
+            			
+            		} else Log.err("Invalid argument. possible arguments: name, ip");
+        		} else Log.err("Please enter a value");
+        		
+        	} else if (arg[0].equals("clear")) {
+        		if (arg[1].equals("name")) {
+        			bannedNames.clear();
+        			saveSettings();
+        			Log.info("Name blacklist emptied!");
+        			
+        		} else if (arg[1].equals("ip")) {
+        			bannedIps.clear();
+        			saveSettings();
+        			Log.info("IP blacklist emptied!");
+        			
+        		} else Log.err("Invalid argument. possible arguments: name, ip");
+        		
+        	} else Log.err("Invalid argument. possible arguments: list, add, remove");
+        });
+        
+        handler.register("anti-vpn", "[on|off]", "Anti VPN service", arg -> {
+        	if (arg.length == 0) {
+        		Log.info("Anti VPN is currently @.", antiVpn ? "enabled" : "disabled");
+        		return;
+        	}
+        	
+        	switch (arg[0]) {
+        		case "on":
+        			if (antiVpn) {
+        				Log.err("Disabled first!");
+        				return;
+        			}
+        			antiVpn = true;
+        			Log.info("Anti VPN enabled ...");
+        			break;
+        		
+        		case "off":
+        			if (!antiVpn) {
+        				Log.err("Enabled first!");
+        				return;
+        			}
+        			antiVpn = false;
+        			Log.info("Anti VPN disabled ...");
+        			break;
+        		
+        		default: 
+        			Log.err("Invalid arguments. \n - Anti VPN is currently @.", antiVpn ? "enabled" : "disabled");
+        			return;
+        	}
+        	
+        	saveSettings();
+        });
     }
     
     //register commands that player can invoke in-game
@@ -617,8 +769,8 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
                                     else hue = 0;
                                     
                                     for (int i=0; i<5; i++) Call.effect(mindustry.content.Fx.bubble, player.x, player.y, 10, 
-                                    	arc.graphics.Color.valueOf(Integer.toHexString(Color.getHSBColor(hue / 360f, 1f, 1f).getRGB()).substring(2)));
-                                    player.name = putColor(pData.normalizedName, hue);
+                                    	arc.graphics.Color.valueOf(Integer.toHexString(java.awt.Color.getHSBColor(hue / 360f, 1f, 1f).getRGB()).substring(2)));
+                                    player.name = Strings.RGBString(pData.normalizedName, hue);
                                     pData.setHue(hue);
                                     
                                     Thread.sleep(50);
@@ -864,7 +1016,8 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             	case "all":
             		size = Mathf.ceil(netServer.admins.getWhitelisted().size + 3 + netServer.admins.getWhitelisted().size /2);
             		
-            		builder.append("\nTotal players: [green]").append(netServer.admins.getWhitelisted().size).append("[].\n[gold]--------------------------------[]").append("\n[accent]List of players: []\n");
+            		builder.append("\nTotal players: [green]").append(netServer.admins.getWhitelisted().size)
+            			.append("[].\n[gold]--------------------------------[]").append("\n[accent]List of players: []\n");
             		for (PlayerInfo p : netServer.admins.getWhitelisted()) {
             			builder.append("[white] - [lightgray]Names: [accent]").append(p.names).append("[white] - [lightgray]ID: [accent]'").append(p.id).append("'");
             			if (p.admin) builder.append("[white] | [scarlet]Admin");
@@ -984,16 +1137,16 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             if (Config.strict.bool()) {
             	Config.strict.set(false);
             	target.set(co[0]*8, co[1]*8);
-				Call.setPosition(target.con, co[0]*8, co[1]*8);
+            	Call.setPosition(target.con, co[0]*8, co[1]*8);
 				
-				new Thread() {
+            	new Thread() {
             		public void run() {
-            			try {
-            				Thread.sleep(100);
-							Config.strict.set(true);
-						} catch (InterruptedException e) { Config.strict.set(true); }
+            			try { Thread.sleep(100); } 
+            			catch (InterruptedException e) {}
+            			Config.strict.set(true);
             		}
             	}.start();
+            	
             } else {
             	target.set(co[0]*8, co[1]*8);
             	Call.setPosition(target.con, co[0]*8, co[1]*8);
@@ -1120,13 +1273,19 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	if (arg.length == 0) player.sendMessage("[gold]God mode is [green]" + (godmodPlayers.containsKey(target.uuid()) ? "enabled" : "disabled"));
         	else {
         		player.sendMessage("[gold]God mode is [green]" + (godmodPlayers.containsKey(target.uuid()) ? "enabled" : "disabled") + (arg.length == 0 ? "" : "[] for [accent]" + target.name));
-        		target.sendMessage((godmodPlayers.containsKey(target.uuid()) ? "[green]You've been put into god mode" : "[red]You have been removed from creative mode") + " by [accent]"+ player.name);
+        		target.sendMessage((godmodPlayers.containsKey(target.uuid()) ? "[green]You've been put into god mode" : "[red]You have been removed from creative mode") 
+        			+ " by [accent]"+ player.name);
         	}
         	
         });
         
-        handler.<Player>register("tchat", "<on|off>", "Enabled/disabled the tchat", (arg, player) -> {
+        handler.<Player>register("tchat", "[on|off]", "Enabled/disabled the tchat", (arg, player) -> {
         	if (!Players.adminCheck(player)) return;
+        	
+        	if (arg.length == 0) {
+        		Log.info("The tchat is currently @.", tchat ? "enabled" : "disabled");
+        		return;
+        	}
         	
         	switch (arg[0]) {
         		case "on":
@@ -1202,38 +1361,71 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
 
     }
     
-    private void loadSettings() {
-    	if (Core.settings.has("moreCommands")) {
-    		try {
-    			String[] temp = Core.settings.getString("moreCommands").split(" \\| ");
-    			autoPause = Boolean.parseBoolean(temp[0]);
-    			tchat = Boolean.parseBoolean(temp[1]);
-    			
-    		} catch (ArrayIndexOutOfBoundsException e) {
-    			saveSettings();
-    			loadSettings();
+    @SuppressWarnings("unchecked")
+	private void loadSettings() {
+    	try {
+    		if (Core.settings.has("moreCommands")) {
+        		String[] temp = Core.settings.getString("moreCommands").split(" \\| ");
+        		autoPause = Boolean.parseBoolean(temp[0]);
+        		tchat = Boolean.parseBoolean(temp[1]);
+        		antiVpn = Boolean.parseBoolean(temp[2]);
+        	} else saveSettings();
+        	
+        	if (Core.settings.has("bannedNamesList")) {
+        		bannedNames = Core.settings.getJson("bannedNamesList", Seq.class, null).list(); 
+        	} else saveSettings();
+        	
+        	if (Core.settings.has("bannedIpsList")) {
+        		 bannedIps = Core.settings.getJson("bannedIpsList", Seq.class, null).list(); 
+        	} else saveSettings();
+        	
+    	} catch (Exception e) {
+    		saveSettings();
+    		loadSettings();
+    	}
+    	
+    	arc.files.Fi file = Core.files.local("config/ip-vpn-list.txt");
+
+    	if (file.exists()) {
+    		try { 
+    			Object[] list = file.readString().lines().toArray();
+    			for (Object line : list) defaultBannedIps.add((String) line);
+    		} catch (Exception e) {
+    			Core.net.httpGet("https://raw.githubusercontent.com/Susideur/moreCommands/main/ip-vpn-list.txt", s -> {
+        			file.writeBytes(s.getResult());
+        			defaultBannedIps = new Seq<String>().addAll((String[]) file.readString().lines().toArray()).list();
+        		}, f -> {
+        			Log.err("The anti VPN file could not be downloaded from the web! It will therefore be deactivated");
+        			antiVpn = false;
+        		});
     		}
-    	} else saveSettings();
+    	
+    	} else {
+    		try { file.file().createNewFile(); } 
+    		catch (IOException e) {}
+    		
+    		Core.net.httpGet("https://raw.githubusercontent.com/Susideur/moreCommands/main/ip-vpn-list.txt", s -> {
+    			file.writeBytes(s.getResult());
+    			Object[] list = file.readString().lines().toArray();
+    			for (Object line : list) defaultBannedIps.add((String) line);
+    		}, f -> {
+    			Log.err("The anti VPN file could not be downloaded from the web! It will therefore be deactivated");
+    			antiVpn = false;
+    		});
+    	}
     }
     
     private void saveSettings() {
-    	Core.settings.put("moreCommands", String.join(" | ", autoPause+"", tchat+""));
+    	Core.settings.put("moreCommands", String.join(" | ", autoPause+"", tchat+"", antiVpn+""));
+    	Core.settings.putJson("bannedNamesList", new Seq<String>().addAll(bannedNames));
+    	Core.settings.putJson("bannedIpsList", new Seq<String>().addAll(bannedIps));
     	Core.settings.forceSave();
     }
-    
-	private String createSpaces(int length) {
-    	String spaces = "";
-    	for (int i=0; i<length; i++) spaces+=" ";
-    	return spaces;
-    }
-    
+
     private int bestLength(Seq<CommandsManager.Commands> list) {
-    	int best = 0;
-    	
-    	for (CommandsManager.Commands str : list) {
-    		if (str.name.length() > best) best = str.name.length();
-    	}
-    	return best;
+    	ArrayList<String> newList = new ArrayList<>();
+    	list.forEach(c -> newList.add(c.name));
+    	return Strings.bestLength(newList);
     }
     
     private void setHandler(CommandHandler handler) {
@@ -1247,24 +1439,20 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
     	}.start();
     }
 
-    private void nameCheck(Player player, String[] bannedNames) {
-    	for (String name : bannedNames) {
-    		if (Strings.stripColors(player.name).equals(name)) {
-    			player.kick("[scarlet]Invalid nickname: []Please don't use [accent]'" + name + "'[white] in your nickname.");
-    			return;
-    		}
-    	}
-    }
-    
-    private String putColor(String str, int hue) {
-    	String out = "";
-    	for (char c : str.toCharArray()) {
-    		if (hue < 360) hue+=10;
-    		else hue = 0;
-    		
-    		out += "[#" + Integer.toHexString(Color.getHSBColor(hue / 360f, 1f, 1f).getRGB()).substring(2) + "]" + c;
-    	}
-        return out;
+    private void nameCheck(Player player) {
+    	String name = Strings.stripColors(player.name).strip();
+    	
+    	if (bannedNames.contains(name) || defaultBannedNames.contains(name)) 
+    		player.kick("[scarlet]Invalid nickname: []Please don't use [accent]'" + bannedNames.get(bannedNames.indexOf(name)) + "'[white] in your nickname.");
+    	else if (bannedClients.contains(name)) 
+    		player.con.kick("Ingenuine copy of Mindustry.\n\n"
+    			+ "Mindustry is free on: [royal]https://anuke.itch.io/mindustry[]\n"
+    			+ "Mindustry est gratuit ici : [royal]https://anuke.itch.io/mindustry[]\n");
+    	
+    	else if (bannedIps.contains(player.con.address))
+    		player.kick("[scarlet]The IP you are using is blacklisted. [lightgray](your ip: " + player.ip() +")");
+    	else if (defaultBannedIps.contains(player.con.address) && antiVpn) 
+    		player.kick("[scarlet]Anti VPN is activated on this server! []Please deactivate your VPN to be able to connect to the server.");
     }
     
     //search a possible team
