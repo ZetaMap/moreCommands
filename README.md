@@ -36,6 +36,7 @@
 * `clear-map [y|n]` Kill all units and destroy all blocks except cores, on the current map.
 * `gamemode [name]` Change the gamemode of the current map
 * `blacklist <list|add|remove> <name|ip> [value...]` Players using a nickname or ip in the blacklist cannot connect.
+* `anti-vpn [on|off]` Anti VPN service.
 
 ### Feedback
 Open an issue if you have a suggestion.
