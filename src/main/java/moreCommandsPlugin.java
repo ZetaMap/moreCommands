@@ -4,7 +4,6 @@ import static mindustry.Vars.netServer;
 import static mindustry.Vars.state;
 import static mindustry.Vars.world;
 
-import java.io.IOException;
 import java.util.ArrayList;
 
 import arc.Core;
@@ -210,7 +209,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	}
         	
         	switch (arg[0]) {
-        		case "on":
+        		case "on": case "true":
         			if (tchat) {
         				Log.err("Disabled first!");
         				return;
@@ -221,7 +220,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         			Call.sendMessage("\n[gold]-------------------- \n[scarlet]/!\\[orange] The tchat is enabled! [lightgray](by [scarlet][[Server][]) \n[gold]--------------------\n");
         			break;
         		
-        		case "off":
+        		case "off": case "false":
         			if (!tchat) {
         				Log.err("Enabled first!");
         				return;
@@ -437,7 +436,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             			Log.info(builder.toString());
             			builder = new StringBuilder();
             			
-            			if (i > 5 && bannedIps.size() < 5) break;
+            			if (i > 20 && bannedIps.size() < 20) break;
             		}
         		
         		} else Log.err("Invalid argument. possible arguments: name, ip");
@@ -510,7 +509,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	}
         	
         	switch (arg[0]) {
-        		case "on":
+        		case "on": case "true":
         			if (antiVpn) {
         				Log.err("Disabled first!");
         				return;
@@ -519,7 +518,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         			Log.info("Anti VPN enabled ...");
         			break;
         		
-        		case "off":
+        		case "off": case "false":
         			if (!antiVpn) {
         				Log.err("Enabled first!");
         				return;
@@ -1288,7 +1287,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	}
         	
         	switch (arg[0]) {
-        		case "on":
+        		case "on": case "true":
         			if (tchat) {
         				Players.err(player, "Disabled first!");
         				return;
@@ -1298,7 +1297,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         			Call.sendMessage("\n[gold]-------------------- \n[scarlet]/!\\[orange] The tchat is enabled! [lightgray](by " + player.name + "[lightgray]) \n[gold]--------------------\n");
         			Log.info("Tchat enabled by " + player.name + ".");
         			break;
-        		case "off":
+        		case "off": case "false":
         			if (!tchat) {
         				Players.err(player, "Enabled first!");
         				return;
@@ -1402,7 +1401,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
     	
     	} else {
     		try { file.file().createNewFile(); } 
-    		catch (IOException e) {}
+    		catch (java.io.IOException e) {}
     		
     		Core.net.httpGet("https://raw.githubusercontent.com/Susideur/moreCommands/main/ip-vpn-list.txt", s -> {
     			file.writeBytes(s.getResult());
