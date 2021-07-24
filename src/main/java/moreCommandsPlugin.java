@@ -453,7 +453,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             			}
             			
             		} else if (arg[1].equals("ip")) {
-            			if (arg[2].split("\\.").length != 4 || !Strings.canParseIntList(arg[2].split("\\."))) Log.err("Incorrect format for IPv4");
+            			if (arg[2].split("\\.").length != 4 || !Strings.canParseByteList(arg[2].split("\\."))) Log.err("Incorrect format for IPv4");
             			else if (bannedIps.contains(arg[2])) Log.err("'@' is already in the blacklist", arg[2]);
             			else {
             				bannedIps.add(arg[2]);
@@ -476,7 +476,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             			}
             			
             		} else if (arg[1].equals("ip")) {
-            			if (arg[2].split(".").length != 4 || !Strings.canParseIntList(arg[2].split("."))) Log.err("Incorrect format for IPv4");
+            			if (arg[2].split("\\.").length != 4 || !Strings.canParseByteList(arg[2].split("\\."))) Log.err("Incorrect format for IPv4");
             			else {
             				bannedIps.remove(arg[2]);
             				saveSettings();

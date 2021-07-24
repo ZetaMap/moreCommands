@@ -57,9 +57,10 @@ public class Strings extends arc.util.Strings {
         return out;
     }
 	
-	public static boolean canParseIntList(String[] list) {
+	public static boolean canParseByteList(String[] list) {
 		for (String str : list) 
-			if (!canParseInt(str)) return false;
+			if (!canParseInt(str) || Integer.parseInt(str) > 255) 
+				return false;
 		
 		return true;
 	}
