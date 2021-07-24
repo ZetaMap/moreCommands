@@ -32,7 +32,7 @@
 * `auto-pause` Pause the game if no one is connected.
 * `tchat [on|off]` Enabled/disabled the tchat.
 * `nice-welcome` Nice welcome for me.
-* `manage-commands <list|commandName> [on|off]` Enable/Disable a command. /!\\Requires server restart to apply changes.
+* `manage-commands <list|commandName> [on|off] [(if several)]` Enable/Disable a command. /!\\Requires server restart to apply changes.
 * `clear-map [y|n]` Kill all units and destroy all blocks except cores, on the current map.
 * `gamemode [name]` Change the gamemode of the current map
 * `blacklist <list|add|remove|clear> <name|ip> [value...]` Players using a nickname or ip in the blacklist cannot connect.
