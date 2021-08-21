@@ -26,6 +26,8 @@
 * `/tchat [on|off]` Enabled/disabled the tchat.
 * `/spawn <unit> [x,y|username] [teamname] [count...]` Spawn a unit ('~': your team or coordinates).
 * `/godmode [username...]` [God]: I'm divine!
+* `/mute <username|ID> [reason...]` Mute a person by name or ID
+* `/unmute <username|ID>` Unmute a person by name or ID
 
 ### Server Commands
 * `unban-all [y|n]` Unban all ID and IP.
