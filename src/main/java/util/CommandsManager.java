@@ -4,38 +4,32 @@ import arc.Core;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 import arc.util.CommandHandler;
+import arc.util.Log;
 
 
 public class CommandsManager {
 	private static ObjectMap<String, Boolean> commands = new ObjectMap<>(), temp = new ObjectMap<>();
+	private static String clientPrefix = mindustry.Vars.netServer.clientCommands.getPrefix();
 	private static volatile boolean canLoad = false;
 	
-	public static Boolean get(String name) {
-		return commands.get(name);
+	public static Commands get(String name) {
+		Boolean result = commands.get(name);
+		return result == null ? null : new Commands(name, result);
 	}
 
-	public static boolean set(String name, boolean value) {
-		return commands.put(name, value);
+	public static void add(String name, boolean value) {
+		commands.put(name, value);
 	}
 	
 	public static Seq<Commands> copy() {
-		Seq<Commands> copy = new Seq<>();
-		commands.forEach(command -> copy.add(new Commands(command.key, command.value)));
-		return copy;
+		Seq<Commands> result = new Seq<>();
+		commands.forEach(c -> result.add(new Commands(c.key, c.value)));
+		
+		return result;
 	}
 	
 	public static void save() {
-		StringBuilder builder = new StringBuilder();
-
-		if (!commands.isEmpty())
-			commands.forEach(command -> {
-				builder.append(command.key + " - ");
-				if (command.value) builder.append(1 + " | ");
-				else builder.append(0 + " | ");
-			});
-		else builder.append("");
-		
-		Core.settings.put("handlerManager", builder.toString());
+		Core.settings.put("handlerManager", commands.toString(" | "));
 		Core.settings.forceSave();
 	}
 	
@@ -44,15 +38,15 @@ public class CommandsManager {
 			if (command.value != temp.get(command.key)) {
 				handler.removeCommand("host");
 				
-				handler.register("host", "[mapname] [mode]", "Open the server. Will default to survival and a random map if not specified.", arg -> {
-					arc.util.Log.warn("Changes have been made. Please restart the server for them to take effect. (tip: write 'exit' to shut down the server)");
-				});
+				handler.register("host", "[mapname] [mode]", "Open the server. Will default to survival and a random map if not specified.", arg -> 
+					Log.warn("Changes have been made. Please restart the server for them to take effect. (tip: write 'exit' to shut down the server)")
+				);
 				return;
 			}
 		});
 	}
 
-	public static void load(CommandHandler handler, boolean isClient) {
+	public static void load(CommandHandler handler) {
 		while (!canLoad) {}
 		
 		handler.getCommandList().forEach(command -> {
@@ -60,8 +54,8 @@ public class CommandsManager {
 				commands.put(handler.getPrefix() + command.text, true);
 		});
 		
-		Seq<String> list = (isClient ? commands.keys().toSeq().filter(c -> c.startsWith(handler.getPrefix())) : 
-					commands.keys().toSeq().filter(c -> !c.startsWith(mindustry.Vars.netServer.clientCommands.getPrefix()))),
+		Seq<String> list = (clientPrefix.equals(handler.getPrefix()) ? commands.keys().toSeq().filter(c -> c.startsWith(handler.getPrefix())) : 
+					commands.keys().toSeq().filter(c -> !c.startsWith(clientPrefix))),
 				comparator = handler.getCommandList().map(command -> command.text);
 		
 		commands.forEach(command -> { 
@@ -79,16 +73,14 @@ public class CommandsManager {
 		String content = Core.settings.has("handlerManager") ? Core.settings.getString("handlerManager") : "";
 
 		if (!content.equals("")) {
-			String[] temp;
-			
-			for (String line : content.split(" \\| ")) {
-				temp = line.split(" \\- ");
-				
-				if (temp.length == 2) {
-					if (temp[1].equals("1")) commands.put(temp[0], true);
-					else commands.put(temp[0], false);
+			try {
+				String[] temp;
+				for (String line : content.split(" \\| ")) {
+					temp = line.split("\\=");
+					commands.put(temp[0], Boolean.parseBoolean(temp[1]));
 				}
-			}
+			} catch (Exception e) { save(); }
+			
 		} else save();
 		
 		canLoad = true;
@@ -102,11 +94,16 @@ public class CommandsManager {
 	
 	public static class Commands {
 		public final String name;
-		public final boolean isActivate;
+		public boolean isActivate;
 
 		private Commands(String name, boolean isActivate) {
 			this.name = name;
 			this.isActivate = isActivate;
+		}
+		
+		public void set(boolean value) {
+			commands.put(name, value);
+			this.isActivate = value;
 		}
 	}
 }

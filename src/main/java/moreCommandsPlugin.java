@@ -36,12 +36,13 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
     	votesRTV = new ArrayList<>(), 
     	rainbowedPlayers = new ArrayList<>(), 
     	effects = new ArrayList<>(), 
-    	adminCommands = new Seq<String>().addAll("team", "am", "kick", "pardon", "ban", "unban", "players", "kill", "tp", "core", "tchat", "spawn", "godmode").list(),
+    	adminCommands = new Seq<String>().addAll("team", "am", "kick", "pardon", "ban", "unban", "players", "kill", "tp", "core", "tchat", "spawn", "godmode", "mute").list(),
     	bannedClients = new Seq<String>().addAll("VALVE", "tuttop", "CODEX", "IGGGAMES", "IgruhaOrg", "FreeTP.Org").list(),
     	defaultBannedNames = new Seq<String>().addAll("[Server]", "[server]", "@a", "@p", "@t", "~").list(),
     	defaultBannedIps = new ArrayList<>(),
     	bannedIps = new ArrayList<>(),
-    	bannedNames = new ArrayList<>();
+    	bannedNames = new ArrayList<>(),
+    	mutedPlayers = new ArrayList<>();
     private ObjectMap<Player, Team> rememberSpectate = new ObjectMap<>();
     private ObjectMap<String, Float> godmodPlayers = new ObjectMap<>();
     private Map selectedMap;
@@ -72,7 +73,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         Events.on(EventType.WorldLoadEvent.class, e -> canVote = true); //re-enabled vote
         
         Events.on(EventType.PlayerConnect.class, e -> {
-        	//kick the player if there is [Server], [server], or @a in his nickname
+        	//check the nickname of this player
         	nameCheck(e.player);
         	
         	//check if the nickname is empty without colors
@@ -119,7 +120,8 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         //recreate the tchat for the command /tchat
         Events.on(EventType.PlayerChatEvent.class, e -> {
         	if (!e.message.startsWith("/")) {
-        		if (tchat) {
+        		if (mutedPlayers.contains(e.player.uuid())) Players.err(e.player, "You're muted, you can't speak.");
+        		else if (tchat) {
         			Call.sendMessage(e.message,  NetClient.colorizeName(e.player.id, e.player.name), e.player);
         			Log.info("<" + e.player.name + ": " + e.message + ">");
         		} else {
@@ -277,15 +279,11 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	}
         });
         
-        handler.register("manage-commands", "<list|commandName> [on|off]", "Enable/Disable a command. /!\\Requires server restart to apply changes.", arg -> {
+        handler.register("commands", "<list|commandName> [on|off]", "Enable/Disable a command. /!\\Requires server restart to apply changes.", arg -> {
         	if (arg[0].equals("list")) {
         		StringBuilder builder = new StringBuilder();
-        		Seq<CommandsManager.Commands> client = new Seq<>();
-        		Seq<CommandsManager.Commands> server = new Seq<>();
-        		CommandsManager.copy().forEach(command -> {
-        			if (command.name.startsWith("/")) client.add(command);
-        			else server.add(command);
-        		});
+        		Seq<CommandsManager.Commands> client = new Seq<CommandsManager.Commands>().addAll(CommandsManager.copy().filter(c -> c.name.startsWith("/")));
+        		Seq<CommandsManager.Commands> server = new Seq<CommandsManager.Commands>().addAll(CommandsManager.copy().filter(c -> !c.name.startsWith("/")));
         		int best1 = bestLength(client);
         		int best2 = bestLength(server);
         		
@@ -301,19 +299,19 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         			builder = new StringBuilder();
         		}
         	} else {
-        		Boolean command = CommandsManager.get(arg[0]);
+        		CommandsManager.Commands command = CommandsManager.get(arg[0]);
         		
         		if (command == null) Log.err("This command doesn't exist!");
         		else {
         			if (arg.length == 2) {
         				switch (arg[1]) {
         					case "on": case "true": case "1":
-        						CommandsManager.set(arg[0], true);
+        						command.set(true);
         						Log.info("Enabled ...");
         						break;
         				
         					case "off": case "false": case "0":
-        						CommandsManager.set(arg[0], false);
+        						command.set(false);
         						Log.info("Disabled ...");
         						break;
         				
@@ -323,8 +321,8 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         				}
         				CommandsManager.save();
         				CommandsManager.update(handler);
-        			} else Log.info("The command '" + arg[0] + "' is currently " + (command ? "enabled" : "disabled"));
         			
+        			} else Log.info("The command '" + command.name + "' is currently " + (command.isActivate ? "enabled" : "disabled"));
         		}
         	}
         });
@@ -1311,6 +1309,32 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	}
         });   
         
+        handler.<Player>register("mute", "<username|ID> [reason...]", "mute a person by name or ID", (arg, player) -> {
+        	if (!Players.adminCheck(player)) return;
+
+            Players result = Players.findByNameOrID(arg[0] + (arg.length == 2 ? " " + arg[1] : ""));
+        	Player target = result.player;
+            
+            if (target == null) Players.err(player, "Nobody with that name or ID could be found...");
+            else {
+            	mutedPlayers.add(target.uuid());
+            	Call.sendMessage("[scarlet]/!\\" + NetClient.colorizeName(target.id, target.name) + "[scarlet] has been muted of the server.");
+            	Call.infoMessage(target.con, "You have been muted! [lightgray](by " + player.name + "[lightgray]) \n[scarlet]Reason: []" + (arg[1].isBlank() ?  "<unknown>" : String.join(" ", result.rest)));
+            }
+        });
+        
+        handler.<Player>register("unmute", "<username|ID>", "unmute a person by name or ID", (arg, player) -> {
+        	if (!Players.adminCheck(player)) return;
+
+            Player target = Players.findByNameOrID(arg[0]).player;
+            
+            if (target == null) Players.err(player, "Nobody with that name or ID could be found...");
+            else {
+            	mutedPlayers.remove(target.uuid());
+            	Call.infoMessage(target.con, "You have been unmuted! [lightgray](by " + player.name + "[lightgray])");
+            }
+        });
+        
         handler.<Player>register("kick", "<username|ID> [reason...]", "Kick a person by name or ID", (arg, player) -> {
             if (!Players.adminCheck(player)) return;
 
@@ -1422,9 +1446,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
     }
 
     private int bestLength(Seq<CommandsManager.Commands> list) {
-    	ArrayList<String> newList = new ArrayList<>();
-    	list.forEach(c -> newList.add(c.name));
-    	return Strings.bestLength(newList);
+    	return Strings.bestLength(list.map(c -> c.name).list());
     }
     
     private void setHandler(CommandHandler handler) {
@@ -1432,7 +1454,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
 			public void run() {
 				try {
 					Thread.sleep(1000);
-					CommandsManager.load(handler, netServer.clientCommands.getPrefix().equals(handler.getPrefix()));
+					CommandsManager.load(handler);
 				} catch (InterruptedException e) { e.printStackTrace(); }
 			}
     	}.start();
