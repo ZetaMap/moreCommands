@@ -4,7 +4,6 @@ import arc.Core;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 import arc.util.CommandHandler;
-import arc.util.Log;
 
 
 public class CommandsManager {
@@ -39,7 +38,7 @@ public class CommandsManager {
 				handler.removeCommand("host");
 				
 				handler.register("host", "[mapname] [mode]", "Open the server. Will default to survival and a random map if not specified.", arg -> 
-					Log.warn("Changes have been made. Please restart the server for them to take effect. (tip: write 'exit' to shut down the server)")
+					arc.util.Log.warn("Changes have been made. Please restart the server for them to take effect. (tip: write 'exit' to shut down the server)")
 				);
 				return;
 			}

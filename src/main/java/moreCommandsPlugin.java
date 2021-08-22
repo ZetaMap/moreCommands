@@ -36,7 +36,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
     	votesRTV = new ArrayList<>(), 
     	rainbowedPlayers = new ArrayList<>(), 
     	effects = new ArrayList<>(), 
-    	adminCommands = new Seq<String>().addAll("team", "am", "kick", "pardon", "ban", "unban", "players", "kill", "tp", "core", "tchat", "spawn", "godmode", "mute").list(),
+    	adminCommands = new Seq<String>().addAll("team", "am", "kick", "pardon", "ban", "unban", "players", "kill", "tp", "core", "tchat", "spawn", "godmode", "mute", "unmute").list(),
     	bannedClients = new Seq<String>().addAll("VALVE", "tuttop", "CODEX", "IGGGAMES", "IgruhaOrg", "FreeTP.Org").list(),
     	defaultBannedNames = new Seq<String>().addAll("[Server]", "[server]", "@a", "@p", "@t", "~").list(),
     	defaultBannedIps = new ArrayList<>(),
