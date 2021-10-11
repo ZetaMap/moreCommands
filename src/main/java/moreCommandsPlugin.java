@@ -1063,7 +1063,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         });
         
 
-        handler.<Player>register("core", "<small|medium|big>", "Spawn a core to your corrdinate", (arg, player) -> {
+        handler.<Player>register("core", "[small|medium|big]", "Spawn a core to your corrdinate", (arg, player) -> {
         	if (!Players.adminCheck(player)) return;
         	if(rememberSpectate.containsKey(player)) {
         		Players.err(player, "You can't build a core in vanish mode!");
@@ -1081,8 +1081,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         		case "big": 
         			core = Blocks.coreNucleus;
         			break;
-        		default: 
-        			core = Blocks.coreShard;
+        		default: core = Blocks.coreShard;
         	}
         	if (core != null) {
         		Call.constructFinish(player.tileOn(), core, player.unit(), (byte)0, player.team(), false);
