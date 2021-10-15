@@ -1,6 +1,6 @@
 # moreCommands Plugin
 
-## All players Commands
+### All players Commands
 * `/ut` Tells you the name of the unit you are controlling.
 * `/vnw` (VoteNewWave) Vote for Sending a new Wave.
 * `/maps [page]` List all maps on server.
@@ -51,7 +51,6 @@ You have just run `build.bat` and the plugin will compile automatically.
 
 
 ### Installing
-
 Simply place the output jar from the step above in your server's `config/mods` directory and restart the server.
 List your currently installed plugins by running the `mods` command.
 
