@@ -1,6 +1,6 @@
 # moreCommands Plugin
 
-### All players Commands
+### Player Commands
 * `/ut` Tells you the name of the unit you are controlling.
 * `/vnw` (VoteNewWave) Vote for Sending a new Wave.
 * `/maps [page]` List all maps on server.
@@ -12,7 +12,7 @@
 * `/effect [list|name|id] [page|ID|username...]` Gives you a particle effect. /!\May cause errors
 * `/r <message...>` Reply to the last private message received.
 
-### Admin Only Commands
+### Admin Commands
 * `/team [teamname|list|vanish] [username...]` Change team.
 * `/am <message...>` Send a message as admin.
 * `/kick <ID|username> [reason...]` Kick a person by name or ID.
