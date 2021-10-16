@@ -28,7 +28,7 @@
 * `/godmode [username...]` [God]: I'm divine!
 * `/mute <username|ID> [reason...]` Mute a person by name or ID
 * `/unmute <username|ID>` Unmute a person by name or ID
-- [ ] `/a` Displays the admin interface to execute commands manually.
+- [ ] `/a [commandName]` Displays the admin interface to execute commands manually.
 
 ### Server Commands
 * `unban-all [y|n]` Unban all ID and IP.
