@@ -28,6 +28,7 @@
 * `/godmode [username...]` [God]: I'm divine!
 * `/mute <username|ID> [reason...]` Mute a person by name or ID
 * `/unmute <username|ID>` Unmute a person by name or ID
+[ ] `/a` Displays the admin interface to execute commands manually.
 
 ### Server Commands
 * `unban-all [y|n]` Unban all ID and IP.
@@ -39,6 +40,7 @@
 * `gamemode [name]` Change the gamemode of the current map
 * `blacklist <list|add|remove|clear> <name|ip> [value...]` Players using a nickname or ip in the blacklist cannot connect.
 * `anti-vpn [on|off]` Anti VPN service.
+[ ] `only-interface` Disable all admin commands so that they are only accessible through its interface.
 
 ### Feedback
 Open an issue if you have a suggestion.
