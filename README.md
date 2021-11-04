@@ -20,7 +20,7 @@
 * `/ban <username|ID> [reason...]`  Ban a person.
 * `/unban <ID>` Unban a person.
 * `/players <all|online|ban>` Gives the list of players according to the type of filter given.
-* `/kill [@p|@a|@t|username...]` Kill a player. @a: all unit. @p: all player. @t: all unit in actual team.
+* `/kill [@e|@a|@t|username...]` Kill a player. @e: all unit. @p: all player. @t: all unit in your team.
 * `/tp <name|x,y> [to_name|x,y...]` Teleport to a coordinate or a player.
 * `/core <small|medium|big>` Spawn a core to your corrdinate.
 * `/tchat [on|off]` Enabled/disabled the tchat.
