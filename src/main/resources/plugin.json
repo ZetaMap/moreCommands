@@ -1,7 +1,8 @@
 {
   "name": "moreCommands",
-  "author": "Susideur (map)",
+  "displayName": "moreCommands",
+  "author": "ZetaMap",
   "main": "moreCommandsPlugin",
   "description": "This mindustry plugin add more commands for admins and players.",
-  "version": 8.3
+  "version": 8.5
 }

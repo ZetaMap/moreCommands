@@ -2,27 +2,24 @@ package util;
 
 
 public class Strings extends arc.util.Strings {
-	public static String fillAtLeft(String str, int newLenght) { return fillAtLeft(str, newLenght, " "); }
-	public static String fillAtLeft(String str, int newLenght, String filler) {
+	public static String rJust(String str, int newLenght) { return rJust(str, newLenght, " "); }
+	public static String rJust(String str, int newLenght, String filler) {
 		if (filler.length() >= str.length() + newLenght) return str;
 	
 		while (str.length() < newLenght) str = filler + str;
 		return str;
 	}
 	
-	public static String fillAtRight(String str, int newLenght) { return fillAtRight(str, newLenght, " "); }
-	public static String fillAtRight(String str, int newLenght, String filler) {
+	public static String lJust(String str, int newLenght) { return lJust(str, newLenght, " "); }
+	public static String lJust(String str, int newLenght, String filler) {
 		if (filler.length() >= str.length() + newLenght) return str;
 		
-		while (str.length() < newLenght) {
-			str += filler;
-		}
-		
+		while (str.length() < newLenght) str += filler;
 		return str;
 	}
 	
-	public static String fillAtMiddle(String left, String right, int newLenght) { return fillAtMiddle(left, right, newLenght, " "); }
-	public static String fillAtMiddle(String left, String right, int newLenght, String filler) {
+	public static String mJust(String left, String right, int newLenght) { return mJust(left, right, newLenght, " "); }
+	public static String mJust(String left, String right, int newLenght, String filler) {
 		if (filler.length() >= left.length() + right.length() + newLenght) return left + right;
 
 		while (left.length() + right.length() < newLenght) left += filler;
