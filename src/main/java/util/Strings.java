@@ -62,4 +62,15 @@ public class Strings extends arc.util.Strings {
 		return true;
 	}
 	
+	public static String stripGlyphs(CharSequence str){
+        StringBuilder out = new StringBuilder();
+
+        for(int i = 0; i < str.length(); i++){
+            int c = str.charAt(i);
+            if(c >= 0xE000 && c <= 0xF8FF) continue;
+            out.append((char)c);
+        }
+
+        return out.toString();
+    }
 }

@@ -2,22 +2,21 @@ package data;
 
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
-import arc.util.Strings;
 
-import mindustry.game.Team;
 import mindustry.gen.Player;
 
+import util.Strings;
 
 public class TempData {
 	private static ObjectMap<Player, TempData> data = new ObjectMap<>();
 	public static final String creatorID = "k6uyrb9D3dEAAAAArLs28w==";
 	public final Player player;
-	public Team spectate = null;
-	public final String realName, stripedName;
+	public mindustry.game.Team spectate = null;
+	public final String realName, noColorName, stripedName;
 	public float savedBuildSpeed = 0;
 	public int hue = 0;
 	public boolean votedVNW = false, 
-		votedRTV = false, 
+		votedRTV = false,
 		rainbowed = false, 
 		hasEffect = false, 
 		isMuted = false,
@@ -27,13 +26,25 @@ public class TempData {
 	public TempData(Player p){
 		this.player = p;
         this.realName = p.name;
-        this.stripedName = Strings.stripGlyphs(Strings.stripColors(p.name.strip()));
+        this.noColorName = Strings.stripColors(p.name.strip());
+        this.stripedName = String.valueOf(Strings.stripGlyphs(this.noColorName));
         this.isCreator = p.uuid().equals(creatorID);
     }
 	
 	public boolean spectate() {
 		return this.spectate != null;
 	}
+	
+	public String toString() {
+    	return "TempData{"
+    		+ "spectate: " + this.spectate + ", realName: " + this.realName
+    		+ ", noColorName: " + this.noColorName + ", stripedName: " + this.stripedName
+    		+ ", savedBuildSpeed: " + this.savedBuildSpeed + ", hue: " + this.hue
+    		+ ", votedVNW: " + this.votedVNW + ", votedRTV: " + this.votedRTV
+    		+ ", rainbowed: " + this.rainbowed + ", hasEffect: " + this.hasEffect
+    		+ ", isMuted: " + this.isMuted + ", inGodmode: " + this.inGodmode
+    		+ ", isCreator: " + this.isCreator + "}";
+    }
 	
 	
 	public static Seq<TempData> copy() {

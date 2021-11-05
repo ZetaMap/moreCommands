@@ -673,7 +673,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
                                     
                                     for (int i=0; i<5; i++) Call.effect(mindustry.content.Fx.bubble, player.x, player.y, 10, 
                                     	arc.graphics.Color.valueOf(Integer.toHexString(java.awt.Color.getHSBColor(target.hue / 360f, 1f, 1f).getRGB()).substring(2)));
-                                    player.name = Strings.RGBString(target.stripedName, target.hue);
+                                    player.name = Strings.RGBString(target.noColorName, target.hue);
                                     
                                     Thread.sleep(50);
         						} catch (InterruptedException e) { e.printStackTrace(); }
@@ -1294,7 +1294,6 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             if (netServer.admins.unbanPlayerID(arg[0])) Players.info(player, "Unbanned player: [accent]%s", arg[0]);
             else Players.err(player, "That IP/ID is not banned!");
         });
-
     }
     
 	private void loadSettings() {
