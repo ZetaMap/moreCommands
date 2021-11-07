@@ -45,9 +45,9 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
    
     //Called after all plugins have been created and commands have been registered.
     public void init() {
-    	checkUpdates(); //Check if a new update is available 
+    	checkUpdates(); //check if a new update is available 
     	
-    	//Filter for muted players and if tchat is disabled
+    	//filter for muted players and if tchat is disabled
     	netServer.admins.addChatFilter((p, m) -> {
     		if (tchat) {
     			if (TempData.get(p).isMuted) {
@@ -64,7 +64,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
     		return m;
     	});
     	
-    	//Filter for players in GodMode
+    	//filter for players in GodMode
     	netServer.admins.addActionFilter(a -> {
     		if ((a.type == ActionType.placeBlock || a.type == ActionType.breakBlock) && TempData.get(a.player).inGodmode) {
     			if (a.type == ActionType.placeBlock) Call.constructFinish(a.tile, a.block, a.unit, (byte) a.rotation, a.player.team(), a.config);
@@ -85,8 +85,10 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
     } 
     
 	public moreCommandsPlugin() {
+		//init other classes and load settings...
 		Effects.init();
 		BM.init();
+		AntiVpn.init(true);
 		loadSettings();
 
     	//clear VNW & RTV votes and disabled it on game over
@@ -125,6 +127,9 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         		Log.info("auto-pause: " + Groups.player.size() + " player connected -> Game unpaused...");
         		Call.sendMessage("[scarlet][Server]:[] Game unpaused...");
         	}
+        	
+        	//fix the admin bug
+        	if (e.player.getInfo().admin) e.player.admin = true;
         });
         
         Events.on(EventType.PlayerLeave.class, e -> {
@@ -360,40 +365,54 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	BM.blacklistCommand(arg);
         });
         
-        handler.register("anti-vpn", "[on|off]", "Anti VPN service", arg -> {
+        handler.register("anti-vpn", "[on|off|limit] [number]", "Anti VPN service", arg -> {
         	if (arg.length == 0) {
-        		Log.info("Anti VPN is currently @.", BM.antiVpn ? "enabled" : "disabled");
+        		Log.info("Anti VPN is currently @.", AntiVpn.isEnabled ? "enabled" : "disabled");
         		return;
         	}
         	
-        	if (BM.antiVPNEnabled) {
-        		switch (arg[0]) {
-	        		case "on": case "true":
-	        			if (BM.antiVpn) {
-	        				Log.err("Disabled first!");
-	        				return;
-	        			}
-	        			BM.antiVpn = true;
-	        			Log.info("Anti VPN enabled ...");
-	        			saveSettings();
-	        			break;
-	        		
-	        		case "off": case "false":
-	        			if (!BM.antiVpn) {
-	        				Log.err("Enabled first!");
-	        				return;
-	        			}
-	        			BM.antiVpn = false;
-	        			Log.info("Anti VPN disabled ...");
-	        			saveSettings();
-	        			break;
-	        		
-	        		default: 
-	        			Log.err("Invalid arguments. \n - Anti VPN is currently @.", BM.antiVpn ? "enabled" : "disabled");
-	        			return;
+        	switch (arg[0]) {
+        		case "on": case "true": case "t": case "1":
+        			if (AntiVpn.isEnabled) {
+        				Log.err("Disabled first!");
+        				return;
+        			}
+        			AntiVpn.isEnabled = true;
+        			AntiVpn.timesLeft = AntiVpn.timesLimit;
+        			Log.info("Anti VPN enabled ...");
+        			if (!AntiVpn.fullLoaded) AntiVpn.init();
+        			saveSettings();
+        			break;
+        		
+        		case "off": case "false": case "f": case "0":
+        			if (!AntiVpn.isEnabled) {
+        				Log.err("Enabled first!");
+        				return;
+        			}
+        			AntiVpn.isEnabled = false;
+        			Log.info("Anti VPN disabled ...");
+        			saveSettings();
+        			break;
+        		
+        		case "limit":
+        			if (arg.length == 2) {
+        				if(Strings.canParseInt(arg[1])){
+        	               int number = Strings.parseInt(arg[1]);
+        	               
+        	               if (number < 999 && number > 1) {
+        	            	   AntiVpn.timesLimit = number;
+        	            	   Log.info("Set to @ ...", number);
+        	            	   AntiVpn.saveSettings();
+        	            	   
+        	               } else Log.err("'number' must be less than 999 and greater than 1");
+        	            } else Log.err("Please type a number");
+        			} else Log.info("The unsuccessful search limit is currently at @ tests.", AntiVpn.timesLimit);
+        			break;
+        			
+        		default: 
+        			Log.err("Invalid arguments. \n - Anti VPN is currently @.", AntiVpn.isEnabled ? "enabled" : "disabled");
+        			return;
         		}
-        	} else Log.err("Anti VPN cannot be activated because it could not load properly.");
-        	
         });
     }
     
@@ -452,7 +471,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             	else {
             		MSG.get(player).setTarget(target);
             		player.sendMessage("\n[gold]Private Message send to [white]" + target.name + "\n[gold]Content: [white]" + message);
-            		target.sendMessage("\n[gold]Private Message: [white]" + player.name + "[gold] --> [sky]you[gold]\n--------------------------------\n[white]" + message);
+            		target.sendMessage("\n[gold]Private Message: [white]" + player.name + "[gold] --> [sky]me[gold]\n--------------------------------\n[white]" + message);
             	}
             	
             }
@@ -471,7 +490,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
                 	else {
                 		MSG.get(player).setTarget(target);
                 		player.sendMessage("\n[gold]Private Message send to [white]" + target.name + "\n[gold]Content: [white]" + arg[0]);
-                		target.sendMessage("\n[gold]Private Message: [white]" + player.name + "[gold] --> [sky]you[gold]\n--------------------------------\n[white]" + arg[0]);
+                		target.sendMessage("\n[gold]Private Message: [white]" + player.name + "[gold] --> [sky]me[gold]\n--------------------------------\n[white]" + arg[0]);
                 	}
         		}
         	}
@@ -1294,6 +1313,11 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             if (netServer.admins.unbanPlayerID(arg[0])) Players.info(player, "Unbanned player: [accent]%s", arg[0]);
             else Players.err(player, "That IP/ID is not banned!");
         });
+        
+        handler.<Player>register("test", "test", (arg, player) -> {
+        	player.getInfo().names = new Seq<String>().addAll(player.name);
+        	player.sendMessage(player.getInfo().names.toString());
+        });
     }
     
 	private void loadSettings() {
@@ -1302,18 +1326,15 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         		String[] temp = Core.settings.getString("moreCommands").split(" \\| ");
         		autoPause = Boolean.parseBoolean(temp[0]);
         		tchat = Boolean.parseBoolean(temp[1]);
-        		BM.antiVpn = Boolean.parseBoolean(temp[2]);
         	} else saveSettings();
 
-    	} catch (Exception e) {
-    		saveSettings();
-    		loadSettings();
-    	}
+    	} catch (Exception e) { saveSettings(); }
     }
     
     private void saveSettings() {
-    	Core.settings.put("moreCommands", String.join(" | ", autoPause+"", tchat+"", BM.antiVpn+""));
-    	Core.settings.forceSave();
+    	Core.settings.put("moreCommands", autoPause + " | " + tchat);
+    	BM.saveSettings();
+    	AntiVpn.saveSettings();
     }
 
     private void setHandler(CommandHandler handler) {

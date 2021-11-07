@@ -6,16 +6,15 @@ import arc.Core;
 import arc.struct.Seq;
 import arc.util.Log;
 
+import util.AntiVpn;
 import util.Strings;
 
 
 public class BM {
 	private static ArrayList<String> bannedClients = new Seq<String>().addAll("VALVE", "tuttop", "CODEX", "IGGGAMES", "IgruhaOrg", "FreeTP.Org").list(),
 	    defaultBannedNames = new Seq<String>().addAll("[Server]", "[server]", "@e", "@a", "@p", "@t", "~").list(),
-	    defaultBannedIps = new ArrayList<>(),
 	    bannedIps = new ArrayList<>(),
 	    bannedNames = new ArrayList<>();
-	public static boolean antiVpn = false, antiVPNEnabled = true;
 	
 	public static void blacklistCommand(String[] arg) {
 		ArrayList<String> list = new ArrayList<>();
@@ -46,16 +45,16 @@ public class BM {
         		int max = best > 18+String.valueOf(bannedIps.size()).length() ? best+4 : 23+String.valueOf(bannedIps.size()).length();
 
         		Log.info("List of banned ip:");
-        		Log.info(Strings.lJust("| Custom list: Total: " + bannedIps.size(), max) + "  Default list: Total: " + defaultBannedIps.size() + " (Anti VPN list)");
-        		for (int i=0; i<Math.max(bannedIps.size(), defaultBannedIps.size()); i++) {
+        		Log.info(Strings.lJust("| Custom list: Total: " + bannedIps.size(), max) + "  Default list: Total: " + AntiVpn.vpnServersList.size() + " (Anti VPN list)");
+        		for (int i=0; i<Math.max(bannedIps.size(), AntiVpn.vpnServersList.size()); i++) {
         			try { builder.append(Strings.lJust("| | " + bannedIps.get(i), max+1)); } 
         			catch (IndexOutOfBoundsException e) { 
         				builder.append("|" + Strings.createSpaces(max)); 
         				if (i > 20) break;
         			}
         			try { 
-        				if (i == 20) builder.append(" | ...." + (defaultBannedIps.size()-i) + " more");
-        				else if (i < 20) builder.append(" | " + defaultBannedIps.get(i));
+        				if (i == 20) builder.append(" | ...." + (AntiVpn.vpnServersList.size()-i) + " more");
+        				else if (i < 20) builder.append(" | " + AntiVpn.vpnServersList.get(i));
         			} catch (IndexOutOfBoundsException e) {}
         			
         			Log.info(builder.toString());
@@ -133,6 +132,7 @@ public class BM {
     	
     	if (bannedNames.contains(name) || defaultBannedNames.contains(name)) 
     		player.kick("[scarlet]Invalid nickname: []Please don't use [accent]'" + bannedNames.get(bannedNames.indexOf(name)) + "'[white] in your nickname.");
+    	
     	else if (bannedClients.contains(name)) 
     		player.con.kick("Ingenuine copy of Mindustry.\n\n"
     			+ "Mindustry is free on: [royal]https://anuke.itch.io/mindustry[]\n"
@@ -140,8 +140,9 @@ public class BM {
     	
     	else if (bannedIps.contains(player.con.address))
     		player.kick("[scarlet]The IP you are using is blacklisted. [lightgray](your ip: " + player.ip() +")");
-    	else if (defaultBannedIps.contains(player.con.address) && antiVpn) 
-    		player.kick("[scarlet]Anti VPN is activated on this server! []Please deactivate your VPN to be able to connect to the server.");
+    	
+    	else if (AntiVpn.isEnabled && AntiVpn.checkIP(player.ip())) 
+    		player.kick("[scarlet]Anti VPN is activated on this server! []Please deactivate your VPN to be able to connect to the server.");	
     }
 		
 	@SuppressWarnings("unchecked")
@@ -155,47 +156,11 @@ public class BM {
         		 bannedIps = Core.settings.getJson("bannedIpsList", Seq.class, Seq::new).list(); 
         	} else saveSettings();
         	
-    	} catch (Exception e) {
-    		saveSettings();
-    		init();
-    	}
-    	
-    	arc.files.Fi file = Core.files.local("config/ip-vpn-list.txt");
-
-    	if (file.exists()) {
-    		try { 
-    			Object[] list = file.readString().lines().toArray();
-    			for (Object line : list) defaultBannedIps.add((String) line);
-    		} catch (Exception e) {
-    			Core.net.httpGet("https://raw.githubusercontent.com/ZetaMap/moreCommands/main/ip-vpn-list.txt", s -> {
-        			file.writeBytes(s.getResult());
-        			defaultBannedIps = new Seq<String>().addAll((String[]) file.readString().lines().toArray()).list();
-        		}, f -> {
-        			Log.err("The anti VPN file could not be downloaded from the web! It will therefore be deactivated");
-        			antiVpn = false;
-        			antiVPNEnabled = false;
-        		});
-    		}
-    	
-    	} else {
-    		try { file.file().createNewFile(); } 
-    		catch (java.io.IOException e) {}
-    		
-    		Core.net.httpGet("https://raw.githubusercontent.com/ZetaMap/moreCommands/main/ip-vpn-list.txt", s -> {
-    			file.writeBytes(s.getResult());
-    			Object[] list = file.readString().lines().toArray();
-    			for (Object line : list) defaultBannedIps.add((String) line);
-    		}, f -> {
-    			Log.err("The anti VPN file could not be downloaded from the web! It will therefore be deactivated");
-    			antiVpn = false;
-    			antiVPNEnabled = false;
-    		});
-    	}
+    	} catch (Exception e) { saveSettings(); }
     }
     
-	private static void saveSettings() {
+	public static void saveSettings() {
     	Core.settings.putJson("bannedNamesList", new Seq<String>().addAll(bannedNames));
     	Core.settings.putJson("bannedIpsList", new Seq<String>().addAll(bannedIps));
-    	Core.settings.forceSave();
     }
 }
