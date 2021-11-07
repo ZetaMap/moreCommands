@@ -46,7 +46,7 @@
 Open an issue if you have a suggestion.
 
 ### Releases
-Prebuild relases can be found [here](https://github.com/ZetaMap/moreCommands/releases) 
+Prebuild releases can be found [here](https://github.com/ZetaMap/moreCommands/releases) 
 
 ### Building a Jar 
 You have just run `build.bat` and the plugin will compile automatically.
