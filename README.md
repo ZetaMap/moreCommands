@@ -1,4 +1,5 @@
 # moreCommands Plugin
+**/!\This plugin need java 12 or greater. To dowload java 12, follow steps [here](https://www.oracle.com/fr/java/technologies/javase/jdk12-archive-downloads.html) or greater version [here](https://www.oracle.com/java/technologies/downloads/).
 
 ### Player Commands
 * `/ut` Tells you the name of the unit you are controlling.
