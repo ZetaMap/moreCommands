@@ -13,21 +13,21 @@
 * `/r <message...>` Reply to the last private message received.
 
 ### Admin Commands
-* `/team [teamname|list|vanish] [username...]` Change team.
+* `/team [~|teamname|list|vanish] [filter|username...]` Change team.
 * `/am <message...>` Send a message as admin.
-* `/kick <ID|username> [reason...]` Kick a person by name or ID.
+* `/kick <filter|ID|username> [reason...]` Kick a person by name or ID.
 * `/pardon <ID>` Pardon a votekicked player by ID and allow them to join again.
-* `/ban <username|ID> [reason...]`  Ban a person.
+* `/ban <filter|username|ID> [reason...]`  Ban a person.
 * `/unban <ID>` Unban a person.
 * `/players <all|online|ban>` Gives the list of players according to the type of filter given.
-* `/kill [@e|@a|@t|username...]` Kill a player. @e: all unit. @p: all player. @t: all unit in your team.
-* `/tp <name|x,y> [to_name|x,y...]` Teleport to a coordinate or a player.
+* `/kill [filter|username...]` Kill a player.
+* `/tp <filter|name|x,y> [~|to_name|x,y...]` Teleport to a coordinate or a player.
 * `/core <small|medium|big>` Spawn a core to your corrdinate.
 * `/tchat [on|off]` Enabled/disabled the tchat.
-* `/spawn <unit> [x,y|username] [teamname] [count...]` Spawn a unit ('~': your team or coordinates).
-* `/godmode [username...]` [God]: I'm divine!
-* `/mute <username|ID> [reason...]` Mute a person by name or ID
-* `/unmute <username|ID>` Unmute a person by name or ID
+* `/spawn <unit> [filter|x,y|username] [~|teamname] [count...]` Spawn a unit.
+* `/godmode [filter|username...]` [God]: I'm divine!
+* `/mute <filter|username|ID> [reason...]` Mute a person by name or ID
+* `/unmute <filter|username|ID>` Unmute a person by name or ID
 - [ ] `/a [commandName]` Displays the admin interface to execute commands manually.
 
 ### Server Commands
