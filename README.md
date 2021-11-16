@@ -63,7 +63,6 @@ This plugin is a grouping of other plugins, with modifications or upgrades.
 J-VdS - [TeamPlugin](https://github.com/J-VdS/TeamPlugin)<br>
 Phinner - [BetterCommands](https://github.com/Phinner/BetterCommands)<br>
 Shadow53 - [MindustryAdminPlugin](https://github.com/Shadow53/MindustryAdminPlugin)<br>
-Gee-aitcH - [GHMP-VoteNewWave](https://github.com/Gee-aitcH/GHMP-VoteNewWave)<br>
 mayli - [RockTheVotePlugin](https://github.com/mayli/RockTheVotePlugin)<br>
 OceanPandorum - [PandorumPlugin](https://github.com/OceanPandorum/PandorumPlugin)<br>
 Mindurka - [spawnUnit](https://github.com/Mindurka/spawnUnit)
