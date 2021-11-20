@@ -9,7 +9,7 @@
 * `/rtv [mapName...]` Rock the vote to change map.
 * `/rainbow [ID|username...]` RAINBOW!!
 * `/msg <ID|username> <message...>` Send a message to a player. (replace all spaces with '_' in the name).
-* `/help [page]` Recreate /help to display only commands related to your rank.
+* `/help [page|filter]` Recreate /help to display only commands related to your rank.
 * `/effect [list|name|id] [page|ID|username...]` Gives you a particle effect. /!\May cause errors
 * `/r <message...>` Reply to the last private message received.
 
@@ -24,24 +24,23 @@
 * `/kill [filter|username...]` Kill a player.
 * `/tp <filter|name|x,y> [~|to_name|x,y...]` Teleport to a coordinate or a player.
 * `/core <small|medium|big>` Spawn a core to your corrdinate.
-* `/tchat [on|off]` Enabled/disabled the tchat.
+* `/chat [on|off]` Enabled/disabled the chat.
 * `/spawn <unit> [filter|x,y|username] [~|teamname] [count...]` Spawn a unit.
-* `/godmode [filter|username...]` [God]: I'm divine!
+* `/godmode [username...]` [God]: I'm divine!
 * `/mute <filter|username|ID> [reason...]` Mute a person by name or ID
 * `/unmute <filter|username|ID>` Unmute a person by name or ID
-- [ ] `/a [commandName]` Displays the admin interface to execute commands manually.
 
 ### Server Commands
-* `unban-all [y|n]` Unban all ID and IP.
-* `auto-pause` Pause the game if no one is connected.
-* `tchat [on|off]` Enabled/disabled the tchat.
-* `nice-welcome` Nice welcome for me.
-* `commands <list|commandName> [on|off]` Enable/Disable a command. /!\\Requires server restart to apply changes.
-* `clear-map [y|n]` Kill all units and destroy all blocks except cores, on the current map.
+* `unban-all [y|n]` Unban all ID and IP
+* `auto-pause` Pause the game if no one is connected
+* `chat [on|off]` Enabled/disabled the chat
+* `nice-welcome` Nice welcome for me
+* `commands <list|commandName> [on|off]` Enable/Disable a command. /!\\Requires server restart to apply changes
+* `clear-map [y|n]` Kill all units and destroy all blocks except cores, on the current map
 * `gamemode [name]` Change the gamemode of the current map
-* `blacklist <list|add|remove|clear> <name|ip> [value...]` Players using a nickname or ip in the blacklist cannot connect.
+* `blacklist <list|add|remove|clear> <name|ip> [value...]` Players using a nickname or ip in the blacklist cannot connect
 * `anti-vpn [on|off]` Anti VPN service.
-- [ ] `only-interface` Disable all admin commands so that they are only accessible through its interface.
+* `filters <help|on|off>` Enabled/disabled filters
 
 ### Feedback
 Open an issue if you have a suggestion.
