@@ -11,7 +11,7 @@ public class Search {
 	public String[] rest = {};
 	public boolean error = false;
 	
-	public Search(String str, Player pDefault) {
+	public Search(String[] str, Player pDefault) {
 		Players result = Players.findByName(str);
     	String co[];
     	Seq<String> temp = new Seq<String>().addAll(result.rest);
@@ -23,8 +23,8 @@ public class Search {
     		if (co.length > 2) {
     			Players.err(pDefault, "Wrong coordinates!");
     			this.error = true;
-    		} else if (!Strings.canParseInt(co[0]) || !Strings.canParseInt(co[1]) || co.length == 1) {
-    			Players.err(pDefault, "This player doesn't exist or not connected!");
+    		} else if (!Strings.canParseInt(co[0]) || co.length == 1 || !Strings.canParseInt(co[1])) {
+    			Players.errNotOnline(pDefault);
     			this.error = true;
     		} else {
     			temp.remove(0);

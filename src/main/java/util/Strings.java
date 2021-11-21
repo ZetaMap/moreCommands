@@ -32,7 +32,7 @@ public class Strings extends arc.util.Strings {
     	return spaces;
     }
 	
-	public static int bestLength(java.util.ArrayList<String> list) {
+	public static int bestLength(arc.struct.Seq<String> list) {
     	int best = 0;
     	
     	for (String i : list) 

@@ -11,7 +11,6 @@ import arc.struct.ObjectSet;
 import arc.struct.Seq;
 import arc.util.CommandHandler;
 import arc.util.Log;
-import arc.util.serialization.Jval;
 
 import mindustry.content.Blocks;
 import mindustry.core.NetClient;
@@ -23,11 +22,12 @@ import mindustry.gen.Groups;
 import mindustry.gen.Player;
 import mindustry.maps.Map;
 import mindustry.net.Administration.ActionType;
-import mindustry.net.Administration.Config;
 import mindustry.net.Administration.PlayerInfo;
 import mindustry.net.Packets.KickReason;
 
 import util.*;
+import util.filter.*;
+import util.filter.FilterType.Reponses;
 import data.*;
 
 
@@ -45,7 +45,12 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
    
     //Called after all plugins have been created and commands have been registered.
     public void init() {
-    	checkUpdates(); //check if a new update is available 
+    	//check if a new update is available 
+    	Core.net.httpGet(mindustry.Vars.ghApi+"/repos/ZetaMap/moreCommands/releases/latest", s -> {
+    		if (Strings.parseFloat(arc.util.serialization.Jval.read(s.getResultAsString()).get("tag_name").asString().substring(1)) > 
+    			Strings.parseFloat(mindustry.Vars.mods.getMod("morecommands").meta.version))
+    				Log.info("A new version of moreCommands is available! See https://github.com/ZetaMap/moreCommands/releases/ to download it!");
+    	}, f -> Log.err(f)); 
     	
     	//filter for muted players and if tchat is disabled
     	netServer.admins.addChatFilter((p, m) -> {
@@ -86,10 +91,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
     
 	public moreCommandsPlugin() {
 		//init other classes and load settings...
-		Effects.init();
-		BM.init();
-		AntiVpn.init(true);
-		loadSettings();
+		load();
 
     	//clear VNW & RTV votes and disabled it on game over
         Events.on(EventType.GameOverEvent.class, e -> {
@@ -104,20 +106,17 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	String name = TempData.putDefault(e.player).stripedName; //add player in TempData
         	BM.nameCheck(e.player); //check the nickname of this player
         	
-        	//check if the nickname is empty without colors
+        	//check if the nickname is empty without colors and emoji
         	if (name.isBlank()) e.player.kick(KickReason.nameEmpty);
         	
         	//prevent to duplicate nicknames
-        	for (Player p : Groups.player) 
-        		if (TempData.get(p).stripedName.equals(name)) e.player.kick(KickReason.nameInUse);
-
-        	MSG.setEmpty(e.player);
+        	if (Groups.player.contains(p -> TempData.get(p).stripedName.equals(name))) e.player.kick(KickReason.nameInUse);
         });
         
         Events.on(EventType.PlayerJoin.class, e -> {
         	//for me =)
         	if (TempData.get(e.player).isCreator) { 
-        		if (niceWelcome) Call.sendMessage("[scarlet]\uE80F " + NetClient.colorizeName(e.player.id, e.player.name) + "[scarlet] has connected! \uE80F   [lightgray]Everyone say: Hello creator! XD");
+        		if (niceWelcome) Call.sendMessage("[scarlet]\ue80f " + NetClient.colorizeName(e.player.id, e.player.name) + "[scarlet] has connected! \ue80f   [lightgray]Everyone say: Hello creator! XD");
         		Call.infoMessage(e.player.con, "Hello creator ! =)");
         	}
         	
@@ -140,7 +139,6 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	}
         	
         	TempData.remove(e.player); // remove player in TempData
-        	MSG.remove(e.player);
         });
     }
     
@@ -197,9 +195,9 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
     		}
     	});
     	
-        handler.register("tchat", "[on|off]", "Enabled/disabled the tchat", arg -> {
+        handler.register("chat", "[on|off]", "Enabled/disabled the chat", arg -> {
         	if (arg.length == 0) {
-        		Log.info("The tchat is currently @.", tchat ? "enabled" : "disabled");
+        		Log.info("The chat is currently @.", tchat ? "enabled" : "disabled");
         		return;
         	}
         	
@@ -211,8 +209,8 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         			}
         			tchat = true;
         			saveSettings();
-        			Log.info("Tchat enabled ...");
-        			Call.sendMessage("\n[gold]-------------------- \n[scarlet]/!\\[orange] The tchat is enabled! [lightgray](by [scarlet][[Server][]) \n[gold]--------------------\n");
+        			Log.info("Chat enabled ...");
+        			Call.sendMessage("\n[gold]-------------------- \n[scarlet]/!\\[orange] The chat is enabled! [lightgray](by [scarlet][[Server][]) \n[gold]--------------------\n");
         			break;
         		
         		case "off": case "false":
@@ -222,11 +220,11 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         			}
         			tchat = false;
         			saveSettings();
-        			Log.info("Tchat disabled ...");
-        			Call.sendMessage("\n[gold]-------------------- \n[scarlet]/!\\[orange] The tchat is disabled! [lightgray](by [scarlet][[Server][]) \n[gold]--------------------\n");
+        			Log.info("Chat disabled ...");
+        			Call.sendMessage("\n[gold]-------------------- \n[scarlet]/!\\[orange] The chat is disabled! [lightgray](by [scarlet][[Server][]) \n[gold]--------------------\n");
         			break;
         		
-        		default: Log.err("Invalid arguments. \n - The tchat is currently @.", tchat ? "enabled" : "disabled");
+        		default: Log.err("Invalid arguments. \n - The chat is currently @.", tchat ? "enabled" : "disabled");
         	}
         });
         
@@ -240,8 +238,8 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         		StringBuilder builder = new StringBuilder();
         		Seq<CM.Commands> client = new Seq<CM.Commands>().addAll(CM.copy().filter(c -> c.name.startsWith("/")));
         		Seq<CM.Commands> server = new Seq<CM.Commands>().addAll(CM.copy().filter(c -> !c.name.startsWith("/")));
-        		int best1 = Strings.bestLength(client.map(c -> c.name).list());
-        		int best2 = Strings.bestLength(server.map(c -> c.name).list());
+        		int best1 = Strings.bestLength(client.map(c -> c.name));
+        		int best2 = Strings.bestLength(server.map(c -> c.name));
         		
         		Log.info("List of all commands: ");
         		Log.info(Strings.lJust("| Server commands: Total:" + server.size, 28+best2) + "Client commands: Total:" + client.size);
@@ -329,7 +327,8 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         						}
         					}
         				}
-                		Groups.fire.each(a -> a.remove());
+                		Groups.fire.clear();
+                		Groups.weather.clear();
                 		unitCounter += Groups.unit.size();
                 		Groups.unit.each(u -> u.kill());
                 		
@@ -372,7 +371,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	}
         	
         	switch (arg[0]) {
-        		case "on": case "true": case "t": case "1":
+        		case "on": case "true": case "1":
         			if (AntiVpn.isEnabled) {
         				Log.err("Disabled first!");
         				return;
@@ -381,17 +380,17 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         			AntiVpn.timesLeft = AntiVpn.timesLimit;
         			Log.info("Anti VPN enabled ...");
         			if (!AntiVpn.fullLoaded) AntiVpn.init();
-        			saveSettings();
+        			AntiVpn.saveSettings();
         			break;
         		
-        		case "off": case "false": case "f": case "0":
+        		case "off": case "false":  case "0":
         			if (!AntiVpn.isEnabled) {
         				Log.err("Enabled first!");
         				return;
         			}
         			AntiVpn.isEnabled = false;
         			Log.info("Anti VPN disabled ...");
-        			saveSettings();
+        			AntiVpn.saveSettings();
         			break;
         		
         		case "limit":
@@ -409,10 +408,38 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         			} else Log.info("The unsuccessful search limit is currently at @ tests.", AntiVpn.timesLimit);
         			break;
         			
-        		default: 
-        			Log.err("Invalid arguments. \n - Anti VPN is currently @.", AntiVpn.isEnabled ? "enabled" : "disabled");
-        			return;
+        		default: Log.err("Invalid arguments. \n - Anti VPN is currently @.", AntiVpn.isEnabled ? "enabled" : "disabled");
         		}
+        });
+        
+        handler.register("filters", "<help|on|off>", "Enabled/disabled filters", arg -> {
+        	switch (arg[0]) {
+        		case "help":
+        			Log.info("Filters are currently " + (ArgsFilter.enabled ? "enabled." : "disabled."));
+        			Log.info("Help for all filters: ");
+        			for (FilterType type : FilterType.values()) Log.info(" - " + type.getValue() + ": this filter targets " + type.getDesc() + ".");
+        			break;
+        			
+        		case "on": case "true": case "1":
+        			if (ArgsFilter.enabled) Log.err("Disabled first!");
+        			else {
+        				ArgsFilter.enabled = true;
+        				ArgsFilter.saveSettings();
+        				Log.info("filters enabled ...");
+        			}
+        			break;
+        			
+        		case "off": case "false":  case "0":
+        			if (!ArgsFilter.enabled) Log.err("Enabled first!");
+        			else {
+        				ArgsFilter.enabled = false;
+        				ArgsFilter.saveSettings();
+        				Log.info("filters disabled ...");
+        			}
+        			break;
+        			
+        		default: Log.err("Invalid arguments.");
+        	}
         });
     }
     
@@ -422,37 +449,52 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
     	setHandler(handler);
     	
     	handler.removeCommand("help");
-    	handler.<Player>register("help", "[page]", "Lists all commands", (arg, player) -> {
-        	if(arg.length == 1 && !Strings.canParseInt(arg[0])){
-                player.sendMessage("[scarlet]'page' must be a number.");
-                return;
-            }
-        	
-        	Seq<CommandHandler.Command> commands = handler.getCommandList();
-        	if (!player.admin) {
-        		handler.getCommandList().forEach(command -> {
-        			if (adminCommands.contains(command.text)) commands.remove(command);
-        		});
-        	}
-        	
-        	int lines = 8,
-        			page = arg.length == 1 ? Strings.parseInt(arg[0]) : 1,
-        			pages = Mathf.ceil(commands.size / lines);
-        	if (commands.size % lines != 0) pages++;
-        	
-            if(page > pages || page < 1){
-                player.sendMessage("[scarlet]'page' must be a number between[orange] 1[] and[orange] " + pages + "[].");
-                return;
-            }
-            
-            StringBuilder result = new StringBuilder();
-            result.append(Strings.format("[orange]-- Commands Page[lightgray] @[gray]/[lightgray]@[orange] --\n", page, pages));
-
-            for(int i=(page-1)*lines; i<lines*page; i++){
-            	try { result.append("\n[orange] " + handler.getPrefix() + commands.get(i).text + "[white] " + commands.get(i).paramText + "[lightgray] - " + commands.get(i).description); } 
-            	catch (IndexOutOfBoundsException e) { break; }
-            }
-            player.sendMessage(result.toString());
+    	handler.<Player>register("help", "[page|filter]", "Lists all commands", (arg, player) -> {
+    		StringBuilder result = new StringBuilder();
+    		FilterSearchReponse filter = ArgsFilter.hasFilter(player, arg);
+    		
+    		if (arg.length == 1 && arg[0].equals("filter")) {
+    			result.append("Help for all filters: ");
+    			for (FilterType type : FilterType.values()) result.append("\n - [gold]" + type.getValue() + "[]: this filter targets [sky]" + type.getDesc() + "[].");
+    			
+    		} else if (arg.length == 1 && filter.reponse == Reponses.found) 
+    			result.append("Help for filter [gold]" + filter.type.getValue() + "[]: \nThe filter targets [sky]" + filter.type.getDesc() + "[].");
+    		
+    		else if (arg.length == 1 && filter.reponse != Reponses.notFound) filter.sendIfError();
+    			
+    		else {
+	        	if(arg.length == 1 && !Strings.canParseInt(arg[0])){
+	                player.sendMessage("[scarlet]'page' must be a number.");
+	                return;
+	            }
+	        	
+	        	Seq<CommandHandler.Command> commands = handler.getCommandList();
+	        	if (!player.admin) {
+	        		handler.getCommandList().forEach(command -> {
+	        			if (adminCommands.contains(command.text)) commands.remove(command);
+	        		});
+	        	}
+	        	
+	        	int lines = 8,
+	        		page = arg.length == 1 ? Strings.parseInt(arg[0]) : 1,
+	        		pages = Mathf.ceil(commands.size / lines);
+	        	if (commands.size % lines != 0) pages++;
+	        	
+	            if(page > pages || page < 1){
+	                player.sendMessage("[scarlet]'page' must be a number between[orange] 1[] and[orange] " + pages + "[].");
+	                return;
+	            }
+	            
+	            
+	            result.append(Strings.format("[orange]-- Commands Page[lightgray] @[gray]/[lightgray]@[orange] --\n", page, pages));
+	
+	            for(int i=(page-1)*lines; i<lines*page; i++){
+	            	try { result.append("\n[orange] " + handler.getPrefix() + commands.get(i).text + "[white] " + commands.get(i).paramText + "[lightgray] - " + commands.get(i).description); } 
+	            	catch (IndexOutOfBoundsException e) { break; }
+	            }
+    		}
+    		
+    		player.sendMessage(result.toString());
         });
          
         handler.<Player>register("ut","unit type", (args, player) -> {
@@ -460,37 +502,34 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	catch (NullPointerException e) { player.sendMessage("You're [sky]invisible ..."); }
         });
         
-        handler.<Player>register("msg", "<ID|username> <message...>","Send a message to a player", (arg, player) -> {
-        	Players result = Players.findByNameOrID(arg[0] + " " + arg[1]);
-        	Player target = result.player;
+        handler.<Player>register("msg", "<username|ID> <message...>","Send a message to a player", (arg, player) -> {
+        	Players result = Players.findByNameOrID(arg);
         	
-            if(target == null) Players.err(player, "Player not connected or doesn't exist!");
+            if(!result.found) Players.errNotOnline(player);
             else {
             	String message = String.join(" ", result.rest);
             	if (Strings.stripColors(message).isBlank()) Players.err(player, "Please don't send an empty message.");
             	else {
-            		MSG.get(player).setTarget(target);
-            		player.sendMessage("\n[gold]Private Message send to [white]" + target.name + "\n[gold]Content: [white]" + message);
-            		target.sendMessage("\n[gold]Private Message: [white]" + player.name + "[gold] --> [sky]me[gold]\n--------------------------------\n[white]" + message);
+            		result.data.msgData.setTarget(player);
+            		Call.sendMessage(player.con, message, "[sky]me [gold]--> " + NetClient.colorizeName(result.player.id, result.player.name), player);
+            		Call.sendMessage(result.player.con, message, NetClient.colorizeName(player.id, player.name) + " [gold]--> [sky]me", player);
             	}
             	
-            }
+            } 
          });
         
         handler.<Player>register("r", "<message...>","Reply to the last private message received.", (arg, player) -> {
-        	Player target = MSG.get(player).target;
+        	TempData target = TempData.get(player);
         	
-        	if (target == null) Players.err(player, "No one has sent you a private message");
+        	if (target.msgData.target == null) Players.err(player, "No one has sent you a private message");
         	else {
-        		target = Players.findByID(target.uuid()).player;
-        		
-        		if (target == null) Players.err(player, "This player is disconnected");
+        		if (!target.msgData.targetOnline) Players.err(player, "This player is disconnected");
         		else {
         			if (Strings.stripColors(arg[0]).isBlank()) Players.err(player, "Please don't send an empty message.");
                 	else {
-                		MSG.get(player).setTarget(target);
-                		player.sendMessage("\n[gold]Private Message send to [white]" + target.name + "\n[gold]Content: [white]" + arg[0]);
-                		target.sendMessage("\n[gold]Private Message: [white]" + player.name + "[gold] --> [sky]me[gold]\n--------------------------------\n[white]" + arg[0]);
+                		target.msgData.setTarget(target.player);
+                		Call.sendMessage(player.con, arg[0], "[sky]me [gold]--> " + NetClient.colorizeName(target.player.id, target.player.name), player);
+                		Call.sendMessage(target.player.con, arg[0], NetClient.colorizeName(player.id, player.name) + " [gold]--> [sky]me", player);
                 	}
         		}
         	}
@@ -545,7 +584,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
                         return;
                     }
         		} else {
-        			Players.err(player, "You don't have the permission to use arguments!");
+        			Players.errPermDenied(player);
         			return;
         		}
         	} else waveVoted = 1;
@@ -561,6 +600,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             TempData.setAll(p -> p.votedVNW = false);
             Call.sendMessage("[green]Vote for "+ (waveVoted == 1 ? "Sending a new wave" : "Skiping [scarlet]" + waveVoted + "[] waves") + " is Passed. New Wave will be Spawned.");
             state.wave += waveVoted-1;
+            if (state.wave < 0) state.wave = 0;
             state.wavetime = 0f;
 		});
         
@@ -576,10 +616,10 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	
         	if (arg.length == 1) {
         		if (RTVsize == 0) {
-        			selectedMap = maps.all().find(map -> Strings.stripColors(map.name().replace('_', ' ')).equalsIgnoreCase(Strings.stripColors(arg[0])));
-        			if (selectedMap == null) selectedMap = maps.all().find(map -> Strings.stripColors(map.name().replace('_', ' ')).equalsIgnoreCase(Strings.stripColors(arg[0]).replace('_', ' ')));
+        			selectedMap = maps.all().find(map -> Strings.stripColors(map.name()).replace(' ', '_').equalsIgnoreCase(Strings.stripColors(arg[0]).replace(' ', '_')));
+        			
         			if (selectedMap == null) {
-        				Players.err(player, "No map with name '%s' found.", arg[0]);
+        				Players.err(player, "No map with name '@' found.", arg[0]);
         				return;
         			} else maps.queueNewPreview(selectedMap);
         			
@@ -594,7 +634,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	}
         	
         	target.votedRTV = true;
-        	RTVsize += 1;
+        	RTVsize++;
             int req2 = Mathf.ceil((float) ratio * Groups.player.size());
             Call.sendMessage("[scarlet]RTV: [accent]" + NetClient.colorizeName(player.id, player.name) + " [white]wants to change the map, [green]" + RTVsize 
             	+ "[white] votes, [green]" + req2 + "[white] required. [lightgray](selected map: [white]" + selectedMap.name() + "[lightgray])");
@@ -609,14 +649,13 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         handler.<Player>register("info-all", "[ID|username...]", "Get all player information", (arg, player) -> {
         	StringBuilder builder = new StringBuilder();
         	ObjectSet<PlayerInfo> infos = ObjectSet.with(player.getInfo());
+        	Players test;
 			int i = 1;
         	boolean mode = true;
         	
         	if (arg.length == 1) {
         		if (player.admin) {
-        			Player test = Players.findByNameOrID(arg[0]).player;
-        			
-        			if (test == null) infos = netServer.admins.searchNames(arg[0]);
+        			if (!Players.findByNameOrID(arg).found) infos = netServer.admins.searchNames(arg[0]);
         			if (infos.size == 0) infos = ObjectSet.with(netServer.admins.getInfoOptional(arg[0]));
         			if (infos.size == 0) {
         				Players.err(player, "This player doesn't exist!");
@@ -624,16 +663,16 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         			} else;
         			
         		} else {
-        			Player test = Players.findByName(arg[0]).player;
+        			test = Players.findByName(arg);
         			
         			if (test == null) {
-        				test = Players.findByID(arg[0]).player;
+        				test = Players.findByID(arg);
         				
-        				if (test == null) Players.err(player, "Player not connected or doesn't exist!");
+        				if (test == null) Players.errNotOnline(player);
         				else  Players.err(player, "You don't have permission to search a player by their ID!");
         				return;
         			
-        			} else infos = ObjectSet.with(test.getInfo());
+        			} else infos = ObjectSet.with(test.player.getInfo());
         		}
         		mode = false;
         	} 
@@ -653,16 +692,20 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         			builder.append("[white]Player name [accent]'" + pI.lastName.replaceAll("\\[", "[[") + "[accent]'"+ (mode ? "[white] / ID [accent]'" + pI.id + "'" : ""));
              		builder.append("\n[gold]----------------------------------------[]\n");
         		}
-
-        		builder.append("[white] - All names used: [accent]" + pI.names + 
-                	(Players.findByID(pI.id).player != null ? "\n[white] - [green]Online" : "") +
-                	(TempData.creatorID.equals(pI.id) ? "\n[white] - [sky]Creator of moreCommands [lightgray](the plugin that this server uses)" : "") +
-                	(player.admin ? "\n[white] - IP: [accent]" + pI.lastIP + "\n[white] - All IPs used: [accent]" + pI.ips : "") +
-                	"\n[white] - Times joined: [green]" + pI.timesJoined +
-                	"\n[white] - Times kicked: [scarlet]" + pI.timesKicked +
-                	(player.admin ? "\n[white] - Is baned: [accent]" + pI.banned : "") +
-                	"\n[white] - Is admin: [accent]" + pI.admin +
-                	"\n[gold]----------------------------------------");
+        		
+        		test = Players.findByID(pI.id + " ");
+        		
+        		builder.append("[white] - All names used: [accent]" + pI.names
+        			+ (test.found ? "\n[white] - [green]Online" 
+        				+ "\n[white] - Country: [accent]" + test.player.locale.toUpperCase() : "")
+        			+ (TempData.creatorID.equals(pI.id) ? "\n[white] - [sky]Creator of moreCommands [lightgray](the plugin used by this server)" : "")
+        			+ (player.admin ? "\n[white] - IP: [accent]" + pI.lastIP 
+        				+ "\n[white] - All IPs used: [accent]" + pI.ips : "")
+        			+ "\n[white] - Times joined: [green]" + pI.timesJoined
+        			+ "\n[white] - Times kicked: [scarlet]" + pI.timesKicked
+        			+ (player.admin ? "\n[white] - Is baned: [accent]" + pI.banned : "")
+        			+ "\n[white] - Is admin: [accent]" + pI.admin
+        			+ "\n[gold]----------------------------------------");
                 	
                 if (mode) Call.infoMessage(player.con, builder.toString());
                 else player.sendMessage(builder.toString());
@@ -671,50 +714,49 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         });
         
         handler.<Player>register("rainbow", "[ID|username...]", "[#ff0000]R[#ff7f00]A[#ffff00]I[#00ff00]N[#0000ff]B[#2e2b5f]O[#8B00ff]W[#ff0000]![#ff7f00]!", (arg, player) -> {
-        	TempData target = TempData.get(player);
+        	TempData target;
         	
-        	if (arg.length == 0) {
-        		if(target.rainbowed) {
-        			player.sendMessage("[sky]Rainbow effect toggled off.");
-        			target.rainbowed = false;
-        			player.name = target.realName;
-        		} else {
-        			player.sendMessage("[sky]Rainbow effect toggled on.");
-        			target.rainbowed = true;
-        			target.hasEffect = false;
-
-        			new Thread() {
-        				public void run() {
-        					while(target.rainbowed) {
-        						try {
-                                    if (target.hue < 360) target.hue+=5;
-                                    else target.hue = 0;
-                                    
-                                    for (int i=0; i<5; i++) Call.effect(mindustry.content.Fx.bubble, player.x, player.y, 10, 
-                                    	arc.graphics.Color.valueOf(Integer.toHexString(java.awt.Color.getHSBColor(target.hue / 360f, 1f, 1f).getRGB()).substring(2)));
-                                    player.name = Strings.RGBString(target.noColorName, target.hue);
-                                    
-                                    Thread.sleep(50);
-        						} catch (InterruptedException e) { e.printStackTrace(); }
-        					}
-        				}
-        			}.start();
-        		}
-        	} else {
+        	if (arg.length == 0) target = TempData.get(player);
+        	else {
         		if (player.admin) {
-        			Players.warn(player, "This will remove the rainbow from the person matching the argument.");
+        			target = Players.findByNameOrID(arg).data;
         			
-        			TempData rPlayer = TempData.get(Players.findByNameOrID(arg[0]).player);
-        			
-        			if(rPlayer != null && rPlayer.rainbowed) {
-        				rPlayer.rainbowed = false;
-            			rPlayer.player.name = rPlayer.realName;
-            			player.sendMessage("[sky]Rainbow effect toggled off for the player [accent]" + rPlayer.player.name + "[].");
-        			} else Players.err(player, "This player don't have the rainbow or not connected.");
-        			
-        		} else Players.err(player, "You don't have the permission to use arguments!");
+        			if(target == null) {
+        				Players.errNotOnline(player);
+        				return;
+        			}
+        		} else {
+        			Players.errPermDenied(player);
+        			return;
+        		}
         	}
         	
+        	if(target.rainbowed) {
+    			player.sendMessage("[sky]Rainbow effect toggled off" + (arg.length != 0 ? " for the player [accent]" + target.player.name : "") + "[].");
+    			target.rainbowed = false;
+    			target.player.name = target.realName;
+    		} else {
+    			player.sendMessage("[sky]Rainbow effect toggled on" + (arg.length != 0 ? " for the player [accent]" + target.player.name : "") + "[].");
+    			target.rainbowed = true;
+    			target.hasEffect = false;
+    		}
+        	
+	        new Thread() {
+				public void run() {
+					while(target.rainbowed) {
+						try {
+	                        if (target.hue < 360) target.hue+=5;
+	                        else target.hue = 0;
+	                        
+	                        for (int i=0; i<5; i++) Call.effect(mindustry.content.Fx.bubble, player.x, player.y, 10, 
+	                        	arc.graphics.Color.valueOf(Integer.toHexString(java.awt.Color.getHSBColor(target.hue / 360f, 1f, 1f).getRGB()).substring(2)));
+	                        player.name = Strings.RGBString(target.noColorName, target.hue);
+	                        
+	                        Thread.sleep(50);
+						} catch (InterruptedException e) { e.printStackTrace(); }
+					}
+				}
+			}.start();
         });
         
         handler.<Player>register("effect", "[list|name|id] [page|ID|username...]","Gives you a particles effect. [scarlet] May cause errors", (arg, player) -> {
@@ -764,18 +806,19 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         			player.sendMessage("Randomised effect ...");
         			player.sendMessage("[green]Start particles effect [accent]" + effect.id + "[scarlet] - []" + effect.name);
         		}
+        	
         	} else if (arg.length == 2) {
         		if (player.admin) {
-        			TempData target2 = TempData.get(Players.findByNameOrID(arg[1]).player);
+        			TempData target2 = Players.findByNameOrID(arg).data;
         			
-        			if(target2 == null) Players.err(player, "Player not connected or doesn't exist!");
+        			if(target2 == null) Players.errNotOnline(player);
         			else {
         				if (target2.hasEffect) {
         					target2.hasEffect = false;
         					player.sendMessage("[green]Removed particles effect for [accent]" + target2.player.name);
         				} else Players.err(player, "This player don't have particles effect");
         			}
-        		} else Players.err(player, "You don't have the permission to use arguments!");
+        		} else Players.errPermDenied(player);
         		return;
         		
         	} else {
@@ -798,7 +841,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         		public void run() {
         			while(target.hasEffect) {
         				try { 
-        					Call.effect(effect.effect, player.x, player.y, 10, arc.graphics.Color.green);
+        					Call.effect(effect.effect, player.x, player.y, player.unit().rotation, arc.graphics.Color.green);
         					Thread.sleep(50); 
         				} catch (InterruptedException e) { e.printStackTrace(); }
         			}
@@ -806,26 +849,51 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	}.start();
         });
         
-        handler.<Player>register("team", "[teamname|list|vanish] [username...]","Change team", (args, player) ->{
+        handler.<Player>register("team", "[~|teamname|list|vanish] [filter|username...]","Change team", (args, player) ->{
             if(!player.admin()){
                 player.sendMessage("[scarlet]Only admins can change team !");
                 return;
             }
+            
             StringBuilder builder = new StringBuilder();
-            coreTeamReturn ret = null;
+            Team ret = null;
+            FilterSearchReponse filter = null;
             TempData target;
             
             if (args.length == 2) {
-            	target = TempData.get(Players.findByName(args[1]).player);
+            	filter = ArgsFilter.hasFilter(player, args[1]);
             	
-            	if (target == null) {
-            		Players.err(player, "This player doesn't exist or not connected!");
-            		return;
-            	}
+            	if (filter.reponse == Reponses.notFound) {
+            		target = Players.findByName(args).data;
+	            	
+	            	if (target == null) {
+	            		Players.errNotOnline(player);
+	            		return;
+	            	}
+            	
+            	} else if (filter.sendIfError()) return;
+
+            	else target = TempData.get(player);
             } else target = TempData.get(player);
             
-            if(target.spectate()){
-                player.sendMessage(">[orange] transferring back to last team");
+            if (filter != null && filter.reponse == Reponses.found) 
+            	filter.execute(ctx -> {
+            		if (ctx.player != null) {
+	            		TempData t = TempData.get(ctx.player);
+	        			
+	        			if (t.spectate()) {
+	            			t.player.sendMessage(">[orange] transferring back to last team");
+		                    t.player.team(t.spectate);
+		                    Call.setPlayerTeamEditor(t.player, t.spectate);
+		                    t.spectate = null;
+		                    t.player.name = t.realName;
+	        			}
+            		}
+        			
+        		});
+
+            else if (target.spectate()) {
+            	target.player.sendMessage(">[orange] transferring back to last team");
                 target.player.team(target.spectate);
                 Call.setPlayerTeamEditor(target.player, target.spectate);
                 target.spectate = null;
@@ -836,6 +904,9 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             if(args.length >= 1){
                 Team retTeam;
                 switch (args[0]) {
+                	case "~":
+                		retTeam = player.team();
+                		break;
                 	case "sharded":
                         retTeam = Team.sharded;
                         break;
@@ -856,19 +927,37 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
                         break;
                     
                     case "vanish":
-                    	target.spectate = target.player.unit().team;
-                    	target.rainbowed = false;
-                    	target.hasEffect = false;
-                    	
-                        target.player.team(Team.all[8]);
-                        Call.setPlayerTeamEditor(target.player, Team.all[8]);
-                        target.player.unit().kill();
-                        player.sendMessage("[green]VANISH MODE[] \nuse /team to go back to player mode.");
-                        target.player.name = "";
+                    	if (filter != null && filter.reponse == Reponses.found) {
+                    		if (filter.type.onlyPlayers())
+                    			filter.execute(ctx -> {
+                    				TempData t = TempData.get(ctx.player);
+                    				t.spectate = t.player.unit().team;
+        	                    	t.rainbowed = false;
+        	                    	t.hasEffect = false;
+        	                    	
+        	                        t.player.team(Team.all[8]);
+        	                        Call.setPlayerTeamEditor(t.player, Team.all[8]);
+        	                        t.player.unit().kill();
+        	                        t.player.sendMessage("[green]VANISH MODE[] \nuse /team to go back to player mode.");
+        	                        t.player.name = "";
+                    			});
+                    			
+                    		else Players.err(player, "Vanish team is only for players");
+                    		
+                    	} else {
+	                    	target.spectate = target.player.unit().team;
+	                    	target.rainbowed = false;
+	                    	target.hasEffect = false;
+	                    	
+	                        target.player.team(Team.all[8]);
+	                        Call.setPlayerTeamEditor(target.player, Team.all[8]);
+	                        target.player.unit().kill();
+	                        target.player.sendMessage("[green]VANISH MODE[] \nuse /team to go back to player mode.");
+	                        target.player.name = "";
+                    	}
                     	return;
                     	
-                    default:
-                    	Players.err(player, "This team don't exist!");
+                    default: Players.err(player, "This team don't exist!");
                     case "list":
                     	builder.append("available teams:\n");
                     	builder.append(" - [accent]vanish[]\n");
@@ -881,23 +970,52 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
                         return;   
                     
                 }
+                
                 if(retTeam.cores().isEmpty()) {
                 	Players.warn(player,"This team has no core!");
-                	target.player.team(retTeam);
-                	target.player.unit().controlling.each(u -> u.team(retTeam));
-                	player.sendMessage("> You changed [accent]" + (args.length == 2 ? target.player.name + " " : "") + "[white]to team [sky]" + retTeam);
+                	if (filter != null && filter.reponse == Reponses.found) 
+                		filter.execute(ctx -> {
+                			if (ctx.player != null) {
+                				ctx.player.team(retTeam);
+        	                	ctx.unit.controlling.each(u -> u.team(retTeam));
+        	                	player.sendMessage("> You changed [accent]" + (args.length == 2 ? ctx.player.name + " " : "") + "[white]to team [sky]" + retTeam);
+                			
+                			} else ctx.unit.team(retTeam);
+                		});
+                		
+                	else {
+	                	target.player.team(retTeam);
+	                	target.player.unit().controlling.each(u -> u.team(retTeam));
+	                	player.sendMessage("> You changed [accent]" + (args.length == 2 ? target.player.name + " " : "") + "[white]to team [sky]" + retTeam);
+                	}
+
                 	return;
                 }
                 
-                ret =  new coreTeamReturn(retTeam);
+                ret = retTeam;
             } else ret = getPosTeamLoc(target.player);
 
             //move team mechanic
             if(ret != null) {
-                Call.setPlayerTeamEditor(target.player, ret.team);
-                target.player.team(ret.team);
-                target.player.unit().controlling.each(u -> u.team(target.player.team()));
-                player.sendMessage("> You changed [accent]" + (args.length == 2 ? target.player.name : "") + "[white] to team [sky]" + ret.team);
+            	if (filter != null && filter.reponse == Reponses.found) {
+            		Team retF = ret;
+            		filter.execute(ctx -> {
+            			if (ctx.player != null) {
+            				Call.setPlayerTeamEditor(ctx.player, retF);
+            				ctx.player.team(retF);
+            				ctx.unit.controlling.each(u -> u.team(ctx.player.team()));
+        	                player.sendMessage("> You changed [accent]" + (args.length == 2 ? ctx.player.name : "") + "[white] to team [sky]" + retF.name);
+            			
+            			} else ctx.unit.team(retF);
+            		});
+            	
+            	} else {
+            		Call.setPlayerTeamEditor(target.player, ret);
+	            	target.player.team(ret);
+	                target.player.unit().controlling.each(u -> u.team(target.player.team()));
+	                player.sendMessage("> You changed [accent]" + (args.length == 2 ? target.player.name : "") + "[white] to team [sky]" + ret.name);
+            	}
+            	
             } else Players.err(player, "Other team has no core, can't change!");
         });
 
@@ -960,40 +1078,51 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             else player.sendMessage(builder.toString());
         });
 
-        handler.<Player>register("kill", "[@e|@a|@t|username...]", "Kill a player. @e: all entity. @a: all player. @t: all entity in your team", (arg, player) -> {
+        handler.<Player>register("kill", "[filter|username...]", "Kill a player or a unit", (arg, player) -> {
         	if (!Players.adminCheck(player)) return;
             
         	if (arg.length == 0) player.unit().kill();
         	else {
-        		int counter;
+        		FilterSearchReponse reponse = ArgsFilter.hasFilter(player, arg);
         		
-        		switch (arg[0]) {
-        			case "@a":
-        				counter = Groups.player.size();
-        				Groups.player.each(p -> p.unit().kill());
-        				player.sendMessage("[green]Killed " + counter + " players");
-        				return;
-        			case "@e":
-        				counter = Groups.unit.size();
-        				Groups.unit.each(u -> u.kill());
-        				player.sendMessage("[green]Killed " + counter + " entities");
-        				return;
-        			case "@t":
-        				counter = Groups.unit.count(t -> t.team().equals(player.team()));
-        				Groups.unit.each(t -> t.team().equals(player.team()), u -> u.kill());
-        				player.sendMessage("[green]Killed " + counter + " units in team [accent]" + player.team().name);
-        				return;
-        			default:
-        				Player other = Players.findByName(arg[0]).player;
-        				if (other != null) {
-        					other.unit().kill();
-        					player.sendMessage("[green]Killed [accent]" + other.name);
-        				}
-        				else player.sendMessage("[scarlet]This player doesn't exist or not connected!");
+        		if (reponse.reponse != Reponses.notFound && reponse.sendIfError()) return;
+            	else if (reponse.reponse == Reponses.found) {
+        			if (reponse.type == FilterType.random) 
+        				reponse.execute(ctx -> {
+        					ctx.unit.kill();
+        					player.sendMessage("[green]Killed [white]" + ctx.player.name);
+        				});
+        			
+        			else if (reponse.type == FilterType.randomUnit) 
+        				reponse.execute(ctx -> {
+        					ctx.unit.kill();
+        					player.sendMessage("[green]Killed a [white]" + ctx.unit.type.name);
+        				});
+        			
+        			else if (reponse.type == FilterType.trigger) player.unit().kill();
+        				
+        			else {
+	        			int counter = reponse.execute(ctx -> ctx.unit.kill());
+	        			
+	        			player.sendMessage("[green]Killed " + counter + (reponse.type == FilterType.players ? " players" 
+	        				: reponse.type == FilterType.units || reponse.type == FilterType.withoutPlayers ? " units"
+	        				: reponse.type == FilterType.team || reponse.type == FilterType.withoutPlayersInTeam ? " units in team [accent]" + player.team().name
+	        				: " players in team [accent]" + player.team().name)
+	        			);
+        			}
+        		}
+        			
+        		else {
+        			Player other = Players.findByName(arg).player;
+    				if (other != null) {
+    					other.unit().kill();
+    					player.sendMessage("[green]Killed [accent]" + other.name);
+    				
+    				} else Players.errNotOnline(player);
+        			
         		}
         	}
         });
-        
 
         handler.<Player>register("core", "[small|medium|big]", "Spawn a core to your corrdinate", (arg, player) -> {
         	if (!Players.adminCheck(player)) return;
@@ -1003,86 +1132,119 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	}
         	
         	mindustry.world.Block core;
-        	switch (arg[0]) {
-        		case "small": 
-        			core = Blocks.coreShard;
-        			break;
-        		case "medium": 
-        			core = Blocks.coreFoundation;
-        			break;
-        		case "big": 
-        			core = Blocks.coreNucleus;
-        			break;
-        		default: core = Blocks.coreShard;
-        	}
+        	if (arg.length == 1) {
+	        	switch (arg[0]) {
+	        		case "small": 
+	        			core = Blocks.coreShard;
+	        			break;
+	        		case "medium": 
+	        			core = Blocks.coreFoundation;
+	        			break;
+	        		case "big": 
+	        			core = Blocks.coreNucleus;
+	        			break;
+	        		default: 
+	        			Players.err(player, "no core with name '@'", arg[0]);
+	        			return;
+	        	}
         	
-        	Players.warn(player, "This will destroy all the blocks which will be hampered by the construction of the core.");
+        	} else core = Blocks.coreShard;
+        	
+        	
         	Call.constructFinish(player.tileOn(), core, player.unit(), (byte)0, player.team(), false);
         	player.sendMessage(player.tileOn().block() == core ? "[green]Core build." : "[scarlet]Error: Core not build.");
         });
         
-        handler.<Player>register("tp", "<name|x,y> [to_name|x,y...]", "Teleport to position or player", (arg, player) -> {
+        handler.<Player>register("tp", "<filter|name|x,y> [~|to_name|x,y...]", "Teleport to position or player", (arg, player) -> {
         	if (!Players.adminCheck(player)) return;
         	
-        	int[] co;
-            Player target;
-            Search result = new Search(arg[0] + (arg.length == 2 ? " " + arg[1] : ""), player);
+        	int[] co = {player.tileX(), player.tileY()};
+            Player target = player;
+            Search result = null;
+            FilterSearchReponse filter = ArgsFilter.hasFilter(player, arg);
+            Seq<String> newArg = new Seq<String>().addAll(arg);
             
-            if (result.error) return;
-            else {
-            	target = player;
+            if (filter.reponse != Reponses.notFound && filter.sendIfError()) return;
+        	else if (filter.reponse == Reponses.found) newArg.remove(0);
+        	else {
+        		result = new Search(arg, player);
+        		newArg = Seq.with(result.rest);
+        		
+	    		if (result.error) return;
+	            else {
+	            	if (result.XY == null) co = new int[]{result.player.tileX(), result.player.tileY()};
+	            	else co = result.XY;
+	            }	
+    		}
+
+            if (newArg.isEmpty() && filter.reponse == Reponses.found) {
+            	Players.err(player, "2 arguments are required to use filters");
+            	return;
             	
-            	if (result.XY == null) co = new int[]{(int) result.player.x/8, (int) result.player.y/8};
-            	else co = result.XY;
-            }
+            } else if (!newArg.isEmpty()) {
+            	String rest = String.join(" ", newArg);
             	
-            if (arg.length == 2 && !String.join(" ", result.rest).isBlank()) {
-            	arg[1] = String.join(" ", result.rest);
-            	target = result.player;
             	
-            	if (result.XY == null) {
-					result = new Search(arg[1], player);
-					
-					if (result.error) return;
-		            else {
-		            	if (result.XY == null) co = new int[]{(int) result.player.x/8, (int) result.player.y/8};
-		            	else co = result.XY;
-		            }
-				} else {
-					player.sendMessage("[scarlet]Can't teleport a coordinate to a coordinate or to a player! [lightgray]It's not logic XD.");
-            		return;
-				}
+            	if (rest.equals("~")) {
+            		if (result != null && result.XY != null) {
+	            		player.sendMessage("[scarlet]Can't teleport a coordinate to a coordinate or to a player! [lightgray]It's not logic XD.");
+	            		return;	
+            		}
+            		
+            	} else {
+	            	arg[0] = "";
+	            	arg[1] = rest;
+	            	
+	            	if (filter.reponse == Reponses.found) {
+	            		result = new Search(arg, player);
+						
+						if (result.error) return;
+			            else {
+			            	if (result.XY == null) co = new int[]{result.player.tileX(), result.player.tileY()};
+			            	else co = result.XY;
+			            }
+	            		
+	            	} else {
+		            	target = result.player;
+		            	
+		            	if (result.XY == null) {
+							result = new Search(arg, player);
+							
+							if (result.error) return;
+				            else {
+				            	if (result.XY == null) co = new int[]{result.player.tileX(), result.player.tileY()};
+				            	else co = result.XY;
+				            }
+							
+						} else {
+							player.sendMessage("[scarlet]Can't teleport a coordinate to a coordinate or to a player! [lightgray]It's not logic XD.");
+		            		return;
+						}	
+	            	}
+            	}
             }
             
             if (co[0] > world.width() || co[0] < 0 || co[1] > world.height() || co[1] < 0) {
                 player.sendMessage("[scarlet]Coordinates too large. Max: [orange]" + world.width() + "[]x[orange]" + world.height() + "[]. Min: [orange]0[]x[orange]0[].");
                 return;
             }
+
+            if (filter.reponse == Reponses.found) {
+            	int x = co[0]*8, y = co[1]*8;
+            	filter.execute(ctx -> {
+            		Players.tpPlayer(ctx.unit, x, y);
+            		if (ctx.player != null) player.sendMessage("[green]You teleported [accent]" + ctx.player.name + "[green] to [accent]" + x/8 + "[green]x[accent]" + y/8 + "[green].");
+            	});
             
-            if (Config.strict.bool()) {
-            	Config.strict.set(false);
-            	target.set(co[0]*8, co[1]*8);
-            	Call.setPosition(target.con, co[0]*8, co[1]*8);
-				
-            	new Thread() {
-            		public void run() {
-            			try { Thread.sleep(100); } 
-            			catch (InterruptedException e) {}
-            			Config.strict.set(true);
-            		}
-            	}.start();
-            	
-            } else {
-            	target.set(co[0]*8, co[1]*8);
-            	Call.setPosition(target.con, co[0]*8, co[1]*8);
+            }  else {
+	            Players.tpPlayer(target.unit(), co[0]*8, co[1]*8);
+	            if (arg.length == 2) player.sendMessage("[green]You teleported [accent]" + target.name + "[green] to [accent]" + co[0] + "[green]x[accent]" + co[1] + "[green].");
+	            else player.sendMessage("[green]You teleported to [accent]" + co[0] + "[]x[accent]" + co[1] + "[].");
             }
-            target.snapSync();
             
-            if (arg.length == 2) player.sendMessage("[green]You teleported [accent]" + target.name + "[green] to [accent]" + co[0] + "[green]x[accent]" + co[1] + "[green].");
-            else player.sendMessage("[green]You teleported to [accent]" + co[0] + "[]x[accent]" + co[1] + "[].");
         });  
         
-        handler.<Player>register("spawn", "<unit> [x,y|username] [teamname] [count...]", "Spawn a unit ('~': your team or coordinates).", (arg, player) -> {
+        handler.<Player>register("spawn", "<unit> [count] [filter|x,y|username] [teamname|~...]", "Spawn a unit", (arg, player) -> {
         	if (!Players.adminCheck(player)) return;
         	
         	StringBuilder builder = new StringBuilder();
@@ -1092,33 +1254,45 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	int count = 1, x = (int) target.x, y = (int) target.y;
         	Seq<String> newArg = new Seq<String>().addAll(arg);
         	newArg.remove(0);
+        	FilterSearchReponse filter = null;
 
-        	if (arg.length >= 2) {
-        		if (arg[1].equals("~")) {
-        			target = player;
-        			x = (int) target.x;
-        			y = (int) target.y;
-        			newArg.remove(0);
-        		} else {
-        			Search result = new Search(newArg.toString(" "), player);
-        			newArg.set(new Seq<String>().addAll(result.rest));
+        	if (unit == null) {
+        		player.sendMessage("[scarlet]Available units: []" + content.units().toString("[scarlet], []"));
+        		return;
+        	}
+        	
+        	if (arg.length > 1) {
+    			if (!Strings.canParseInt(newArg.get(0))) {
+    				Players.err(player, "'count' must be number!");
+    				return;
+    			} else count = Strings.parseInt(newArg.get(0));
+    			newArg.remove(0);
+        		
+        		if (!newArg.isEmpty()) {
+        			filter = ArgsFilter.hasFilter(target, newArg.toArray(String.class));
         			
-        			if (result.error) return;
-                    else target = result.player;
-
-        			if (result.XY == null) {
-        				x = (int) target.x;
-        				y = (int) target.y;
-        			} else {
-        				x = result.XY[0]*8;
-        				y = result.XY[1]*8;
-        			}
+	        		if (filter.reponse != Reponses.notFound && filter.sendIfError()) return;
+	            	else if (filter.reponse == Reponses.found) newArg.remove(0);
+	        		else {
+	        			Search result = new Search(newArg.toArray(String.class), player);
+	        			newArg.set(new Seq<String>().addAll(result.rest));
+	        			
+	        			if (result.error) return;
+	                    else target = result.player;
+	
+	        			if (result.XY == null) {
+	        				x = (int) target.x;
+	        				y = (int) target.y;
+	        			} else {
+	        				x = result.XY[0]*8;
+	        				y = result.XY[1]*8;
+	        			}
+	        		}	
         		}
         		
         		if (!newArg.isEmpty()) {
         			switch (newArg.get(0)) {
             			case "~": 
-            				team = target.team();
             				break;
             			case "sharded": 
             				team = Team.sharded;
@@ -1148,28 +1322,36 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         		} else team = target.team();
         		
         		if (!newArg.isEmpty()) {
-        			if (!Strings.canParseInt(newArg.get(0))) {
-        				Players.err(player, "'count' must be number!");
-        				return;
-        			} else count = Strings.parseInt(newArg.get(0));
-        			newArg.remove(0);
-        		}
-        		
-        		if (!newArg.isEmpty()) {
         			Players.err(player, "Too many arguments!");
         			return;
         		}
         	}
 
-            if (unit == null) player.sendMessage("[scarlet]Available units: []" + content.units().toString("[scarlet], []"));
-            else {
-            	if (team.cores().isEmpty()) Players.err(player, "The [accent]" + team.name + "[] team has no core! Units cannot spawn");
-            	else {
-            		for (int i=0; i<count; i++) unit.spawn(team, x, y);
+        	if (team.cores().isEmpty()) Players.err(player, "The [accent]" + team.name + "[] team has no core! Units cannot spawn");
+        	else {
+        		if (filter != null && filter.reponse == Reponses.found) {
+        			Team teamF = team;
+        			int countF = count;
+        			
+        			filter.execute(ctx -> {
+        				int counter = 0;
+                		for (int i=0; i<countF; i++) {
+                			if (unit.spawn(teamF, ctx.unit.x, ctx.unit.y).isValid()) counter++;
+                		}
+                    
+                		player.sendMessage("[green]You are spawning [accent]" + counter + " " + unit 
+                			+ " []for [accent]" + teamF + " []team at [orange]" + (int) ctx.unit.x/8 + "[white],[orange]" + (int) ctx.unit.y/8);
+        			});
+        		
+        		} else {
+        			int counter = 0;
+            		for (int i=0; i<count; i++) {
+            			if (unit.spawn(team, x, y).isValid()) counter++;
+            		}
                 
-            		player.sendMessage("[green]You are spawning [accent]" + count + " " + unit + " []for [accent]" + team + " []team at [orange]" + x/8 + "[white],[orange]" + y/8);
-            	}
-            }	
+            		player.sendMessage("[green]You are spawning [accent]" + counter + " " + unit + " []for [accent]" + team + " []team at [orange]" + x/8 + "[white],[orange]" + y/8);
+        		}
+        	}
         });
         
         handler.<Player>register("godmode", "[username...]", "[scarlet][God][]: [gold]I'm divine!", (arg, player) -> {
@@ -1177,39 +1359,32 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	if (Players.adminCheck(player) || (target.isCreator && niceWelcome));
         	else return;
         	
-        	if (arg.length != 0) target = TempData.get(Players.findByName(arg[0]).player);
+        	if (arg.length != 0) target = Players.findByName(arg).data;
         	
         	if (target != null) {
         		if (target.inGodmode) {
-        			target.player.unit().type.buildSpeed = target.savedBuildSpeed;
         			target.player.unit().health = target.player.unit().maxHealth;
         			target.inGodmode = false;
         		
         		} else {
-        			target.savedBuildSpeed = target.player.unit().type.buildSpeed;
         			target.player.unit().health = Integer.MAX_VALUE;
         			target.player.unit().type.buildSpeed = Float.MAX_VALUE;
         			target.inGodmode = true;
         		}
         		
-        	} else {
-        		player.sendMessage("[scarlet]This player doesn't exist or not connected!");
-        		return;
-        	}
-        		
-        	if (arg.length == 0) player.sendMessage("[gold]God mode is [green]" + (target.inGodmode ? "enabled" : "disabled"));
-        	else {
-        		player.sendMessage("[gold]God mode is [green]" + (target.inGodmode ? "enabled" : "disabled") + (arg.length == 0 ? "" : "[] for [accent]" + target.player.name));
-        		target.player.sendMessage((target.inGodmode ? "[green]You've been put into god mode" : "[red]You have been removed from creative mode") + " by [accent]"+ player.name);
-        	}
-        	
+	        	if (arg.length != 0) {
+	        		player.sendMessage("[gold]God mode is [green]" + (target.inGodmode ? "enabled" : "disabled") + (arg.length == 0 ? "" : "[] for [accent]" + target.player.name));
+	        		target.player.sendMessage((target.inGodmode ? "[green]You've been put into god mode" : "[red]You have been removed from god mode") + " by [accent]"+ player.name);
+	        	
+	        	} else player.sendMessage("[gold]God mode is [green]" + (target.inGodmode ? "enabled" : "disabled"));
+        	} else Players.errNotOnline(player);
         });
         
-        handler.<Player>register("tchat", "[on|off]", "Enabled/disabled the tchat", (arg, player) -> {
+        handler.<Player>register("chat", "[on|off]", "Enabled/disabled the chat", (arg, player) -> {
         	if (!Players.adminCheck(player)) return;
         	
         	if (arg.length == 0) {
-        		player.sendMessage("The tchat is currently "+ (tchat ? "enabled." : "disabled."));
+        		player.sendMessage("The chat is currently "+ (tchat ? "enabled." : "disabled."));
         		return;
         	}
         	
@@ -1221,8 +1396,8 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         			}
         			tchat = true;
         			saveSettings();
-        			Call.sendMessage("\n[gold]-------------------- \n[scarlet]/!\\[orange] The tchat is enabled! [lightgray](by " + player.name + "[lightgray]) \n[gold]--------------------\n");
-        			Log.info("Tchat enabled by " + player.name + ".");
+        			Call.sendMessage("\n[gold]-------------------- \n[scarlet]/!\\[orange] The chat is enabled! [lightgray](by " + player.name + "[lightgray]) \n[gold]--------------------\n");
+        			Log.info("Chat enabled by " + player.name + ".");
         			break;
         		case "off": case "false":
         			if (!tchat) {
@@ -1231,53 +1406,109 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         			}
         			tchat = false;
         			saveSettings();
-        			Call.sendMessage("\n[gold]-------------------- \n[scarlet]/!\\[orange] The tchat is disabled! [lightgray](by " + player.name + "[lightgray]) \n[gold]--------------------\n");
-        			Log.info("Tchat disabled by " + player.name + ".");
+        			Call.sendMessage("\n[gold]-------------------- \n[scarlet]/!\\[orange] The chat is disabled! [lightgray](by " + player.name + "[lightgray]) \n[gold]--------------------\n");
+        			Log.info("Chat disabled by " + player.name + ".");
         			break;
-        		default: Players.err(player, "Invalid arguments.[] \n - The tchat is currently [accent]%s[].", tchat ? "enabled" : "disabled");
+        		default: Players.err(player, "Invalid arguments.[] \n - The chat is currently [accent]@[].", tchat ? "enabled" : "disabled");
         	}
         });   
         
-        handler.<Player>register("mute", "<username|ID> [reason...]", "mute a person by name or ID", (arg, player) -> {
+        handler.<Player>register("mute", "<filter|username|ID> [reason...]", "mute a person by name or ID", (arg, player) -> {
         	if (!Players.adminCheck(player)) return;
 
-            Players result = Players.findByNameOrID(arg[0] + (arg.length == 2 ? " " + arg[1] : ""));
-        	TempData target = TempData.get(result.player);
-            
-            if (target == null) Players.err(player, "Nobody with that name or ID could be found...");
-            else {
-            	String message = String.join(" ", result.rest);
-            	target.isMuted = true;
-            	Call.sendMessage("[scarlet]/!\\" + NetClient.colorizeName(target.player.id, target.player.name) + "[scarlet] has been muted of the server.");
-            	Call.infoMessage(target.player.con, "You have been muted! [lightgray](by " + player.name + "[lightgray]) \n[scarlet]Reason: []" + (message.isBlank() ?  "<unknown>" : message));
-            }
+        	FilterSearchReponse filter = ArgsFilter.hasFilter(player, arg);
+        	
+        	if (filter.reponse != Reponses.notFound && filter.sendIfError()) return;
+        	else if (filter.reponse == Reponses.found) {
+        		if (Players.errFilterAction("mute", filter)) return;
+    			
+        		filter.execute(ctx -> {
+    				TempData t = TempData.get(ctx.player);
+    				
+    				if (!t.isMuted) {
+        				t.isMuted = true;
+    	            	Call.sendMessage("[scarlet]/!\\" + NetClient.colorizeName(t.player.id, t.player.name) + "[scarlet] has been muted of the server.");
+    	            	Call.infoMessage(t.player.con, "You have been muted! [lightgray](by " + t.player.name + "[lightgray]) \n[scarlet]Reason: []" 
+    	            		+ (arg.length == 2 && !arg[1].isBlank() ?  arg[1] : "<unknown>"));	
+    				
+    				} else Players.err(player, "[white]" + t.player.name + "[scarlet] is already muted!");
+    			});
+        		
+        	} else {
+	        	Players result = Players.findByNameOrID(arg);
+	            
+	            if (result.found) {
+	            	if (!result.data.isMuted) {
+		            	String message = String.join(" ", result.rest);
+		            	
+		            	result.data.isMuted = true;
+		            	Call.sendMessage("[scarlet]/!\\" + NetClient.colorizeName(result.player.id, result.player.name) + "[scarlet] has been muted of the server.");
+		            	Call.infoMessage(result.player.con, "You have been muted! [lightgray](by " + player.name + "[lightgray]) \n[scarlet]Reason: []" + (message.isBlank() ?  "<unknown>" : message));
+	            	
+	            	} else Players.err(player, "[white]" + result.player.name + "[scarlet] is already muted!");
+	            } else Players.err(player, "Nobody with that name or ID could be found...");
+        	}
         });
         
-        handler.<Player>register("unmute", "<username|ID>", "unmute a person by name or ID", (arg, player) -> {
+        handler.<Player>register("unmute", "<filter|username|ID>", "unmute a person by name or ID", (arg, player) -> {
         	if (!Players.adminCheck(player)) return;
-
-            TempData target = TempData.get(Players.findByNameOrID(arg[0]).player);
-            
-            if (target == null) Players.err(player, "Nobody with that name or ID could be found...");
-            else {
-            	target.isMuted = false;
-            	Call.infoMessage(target.player.con, "You have been unmuted! [lightgray](by " + player.name + "[lightgray])");
-            }
+        	
+        	FilterSearchReponse filter = ArgsFilter.hasFilter(player, arg);
+        	
+        	if (filter.reponse != Reponses.notFound && filter.sendIfError()) return;
+        	else if (filter.reponse == Reponses.found) {
+        		if (Players.errFilterAction("unmute", filter)) return;
+        		
+        		filter.execute(ctx -> {
+    				TempData t = TempData.get(ctx.player);
+    				
+    				if (t.isMuted) {
+    					t.isMuted = false;
+	            		Call.infoMessage(t.player.con, "You have been unmuted! [lightgray](by " + player.name + "[lightgray])");
+    					
+    				} else Players.err(player, "[white]" + t.player.name + "[scarlet] isn't muted!");
+        		});
+        		
+        	} else {
+	        	Players target = Players.findByNameOrID(arg);
+	            
+	            if (target.found) {
+	            	if (target.data.isMuted) {
+	            		target.data.isMuted = false;
+	            		Call.infoMessage(target.player.con, "You have been unmuted! [lightgray](by " + player.name + "[lightgray])");
+	            	
+	            	} else Players.err(player, "[white]" + target.player.name + "[scarlet] isn't muted!");
+	            } else Players.err(player, "Nobody with that name or ID could be found...");
+        	}
         });
         
-        handler.<Player>register("kick", "<username|ID> [reason...]", "Kick a person by name or ID", (arg, player) -> {
+        handler.<Player>register("kick", "<filter|username|ID> [reason...]", "Kick a person by name or ID", (arg, player) -> {
             if (!Players.adminCheck(player)) return;
 
-            Players result = Players.findByNameOrID(arg[0] + (arg.length == 2 ? " " + arg[1] : ""));
-        	Player target = result.player;
-            
-            if (target == null) Players.err(player, "Nobody with that name or ID could be found...");
-            else {
-            	String message = String.join(" ", result.rest);
-                Call.sendMessage("[scarlet]/!\\" + NetClient.colorizeName(target.id, target.name) + "[scarlet] has been kicked of the server.");
-                if (arg.length == 2) target.kick("You have been kicked from the server!\n[scarlet]Reason: []" + (message.isBlank() ?  "<unknown>" : message));
-                else target.kick(KickReason.kick);
-            }
+            FilterSearchReponse filter = ArgsFilter.hasFilter(player, arg);
+        	
+        	if (filter.reponse != Reponses.notFound && filter.sendIfError()) return;
+        	else if (filter.reponse == Reponses.found) {
+        		if (Players.errFilterAction("kick", filter)) return;
+        		
+        		filter.execute(ctx -> {
+    				Call.sendMessage("[scarlet]/!\\" + NetClient.colorizeName(ctx.player.id, ctx.player.name) + "[scarlet] has been kicked of the server.");
+                    if (arg.length == 2) ctx.player.kick("You have been kicked from the server!\n[scarlet]Reason: []" + (arg[1].isBlank() ?  "<unknown>" : arg[1]));
+                    else ctx.player.kick(KickReason.kick);
+        		});
+        	
+        	} else {
+	        	Players result = Players.findByNameOrID(arg);
+	            
+	            if (result.found) {
+	            	String message = String.join(" ", result.rest);
+	                
+	            	Call.sendMessage("[scarlet]/!\\" + NetClient.colorizeName(result.player.id, result.player.name) + "[scarlet] has been kicked of the server.");
+	                if (arg.length == 2) result.player.kick("You have been kicked from the server!\n[scarlet]Reason: []" + (message.isBlank() ?  "<unknown>" : message));
+	                else result.player.kick(KickReason.kick);
+	            
+	            } else Players.err(player, "Nobody with that name or ID could be found...");
+        	}
         });   
         
         handler.<Player>register("pardon", "<ID>", "Pardon a player by ID and allow them to join again", (arg, player) -> {
@@ -1288,22 +1519,43 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	if (info != null) {
         		info.lastKicked = 0;
         		Players.info(player, "Pardoned player: [accent]%s", info.lastName);
+        	
         	} else Players.err(player, "That ID can't be found.");
         });
 
-        handler.<Player>register("ban", "<username|ID> [reason...]", "Ban a person", (arg, player) -> {
+        handler.<Player>register("ban", "<filter|username|ID> [reason...]", "Ban a person", (arg, player) -> {
         	if (!Players.adminCheck(player)) return;
 
-        	Players result = Players.findByNameOrID(arg[0] + (arg.length == 2 ? " " + arg[1] : ""));
-        	Player target = result.player;
+        	FilterSearchReponse filter = ArgsFilter.hasFilter(player, arg);
         	
-        	if (target == null) Players.err(player, "No matches found.");
-        	else {
-        		String message = String.join(" ", result.rest);
-        		netServer.admins.banPlayer(target.uuid());
-        		Call.sendMessage("[scarlet]/!\\ " + NetClient.colorizeName(target.id, target.name) + "[scarlet] has been banned of the server.");
-        		if (arg.length == 2) target.kick("You are banned on this server!!\n[scarlet]Reason: []" + (message.isBlank() ?  "<unknown>" : message));
-                else target.kick(KickReason.banned);
+        	if (filter.reponse != Reponses.notFound && filter.sendIfError()) return;
+        	else if (filter.reponse == Reponses.found) {
+        		if (Players.errFilterAction("ban", filter)) return;
+        		
+        		filter.execute(ctx -> {
+        			if (!ctx.player.admin) {
+	        			netServer.admins.banPlayer(ctx.player.uuid());
+		        		Call.sendMessage("[scarlet]/!\\ " + NetClient.colorizeName(ctx.player.id, ctx.player.name) + "[scarlet] has been banned of the server.");
+		        		if (arg.length == 2) ctx.player.kick("You are banned on this server!!\n[scarlet]Reason: []" + (arg[1].isBlank() ?  "<unknown>" : arg[1]));
+		                else ctx.player.kick(KickReason.banned);
+		        		
+        			} else Players.err(player, "Can't ban an admin!");
+        		});
+        		
+        	} else {
+	        	Players result = Players.findByNameOrID(arg);
+	        	
+	        	if (result.found) {
+	        		if (!result.player.admin) {
+		        		String message = String.join(" ", result.rest);
+		        		
+		        		netServer.admins.banPlayer(result.player.uuid());
+		        		Call.sendMessage("[scarlet]/!\\ " + NetClient.colorizeName(result.player.id, result.player.name) + "[scarlet] has been banned of the server.");
+		        		if (arg.length == 2) result.player.kick("You are banned on this server!!\n[scarlet]Reason: []" + (message.isBlank() ?  "<unknown>" : message));
+		                else result.player.kick(KickReason.banned);
+	        		
+	        		} else Players.err(player, "Can't ban an admin!");
+	        	} else Players.err(player, "No matches found.");
         	}
         });
         
@@ -1314,14 +1566,15 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             else Players.err(player, "That IP/ID is not banned!");
         });
         
-        handler.<Player>register("test", "test", (arg, player) -> {
-        	player.getInfo().names = new Seq<String>().addAll(player.name);
-        	player.sendMessage(player.getInfo().names.toString());
-        });
     }
     
-	private void loadSettings() {
-    	try {
+	private void load() {
+    	Effects.init();
+		BM.init();
+		AntiVpn.init(true);
+		ArgsFilter.load();
+		
+		try {
     		if (Core.settings.has("moreCommands")) {
         		String[] temp = Core.settings.getString("moreCommands").split(" \\| ");
         		autoPause = Boolean.parseBoolean(temp[0]);
@@ -1335,6 +1588,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
     	Core.settings.put("moreCommands", autoPause + " | " + tchat);
     	BM.saveSettings();
     	AntiVpn.saveSettings();
+    	ArgsFilter.saveSettings();
     }
 
     private void setHandler(CommandHandler handler) {
@@ -1347,44 +1601,23 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
 			}
     	}.start();
     }
-    
-    private void checkUpdates() {
-    	Core.net.httpGet(mindustry.Vars.ghApi+"/repos/ZetaMap/moreCommands/releases/latest", s -> {
-    		Jval content = Jval.read(s.getResultAsString());
-    		if (Strings.parseFloat(content.get("tag_name").asString().substring(1)) > Strings.parseFloat(mindustry.Vars.mods.getMod("morecommands").meta.version))
-    			Log.info("A new version of moreCommands is available! See https://github.com/ZetaMap/moreCommands/releases/ to download it!");
-    	}, f -> Log.err(f));
-    }
-    
-    //search a possible team
-    private Team getPosTeam(Player p){
-        Team currentTeam = p.team();
-        int c_index = java.util.Arrays.asList(Team.baseTeams).indexOf(currentTeam);
+
+    private Team getPosTeamLoc(Player p){
+        Team newTeam = p.team();
+        
+        //search a possible team
+        int c_index = java.util.Arrays.asList(Team.baseTeams).indexOf(newTeam);
         int i = (c_index+1)%6;
         while (i != c_index){
             if (Team.baseTeams[i].cores().size > 0){
-                return Team.baseTeams[i];
+            	newTeam = Team.baseTeams[i];
+            	break;
             }
             i = (i + 1) % Team.baseTeams.length;
         }
-        return currentTeam;
-    }
-
-    private coreTeamReturn getPosTeamLoc(Player p){
-        Team currentTeam = p.team();
-        Team newTeam = getPosTeam(p);
-        if (newTeam == currentTeam){
-            return null;
-        }else{
-            return new coreTeamReturn(newTeam);
-        }
-    }
-
-    class coreTeamReturn{
-        Team team;
-        public coreTeamReturn(Team _t){
-            team = _t;
-        }
+        
+        if (newTeam == p.team()) return null;
+        else return newTeam;
     }
     
 }
