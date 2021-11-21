@@ -25,7 +25,7 @@
 * `/tp <filter|name|x,y> [~|to_name|x,y...]` Teleport to a coordinate or a player.
 * `/core <small|medium|big>` Spawn a core to your corrdinate.
 * `/chat [on|off]` Enabled/disabled the chat.
-* `/spawn <unit> [filter|x,y|username] [~|teamname] [count...]` Spawn a unit.
+* `/spawn <unit> [count] [filter|x,y|username] [~|teamname...]` Spawn a unit.
 * `/godmode [username...]` [God]: I'm divine!
 * `/mute <filter|username|ID> [reason...]` Mute a person by name or ID
 * `/unmute <filter|username|ID>` Unmute a person by name or ID
