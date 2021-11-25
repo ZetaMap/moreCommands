@@ -12,6 +12,8 @@
 * `/help [page|filter]` Recreate /help to display only commands related to your rank.
 * `/effect [list|name|id] [page|ID|username...]` Gives you a particle effect. /!\May cause errors
 * `/r <message...>` Reply to the last private message received.
+* `/hub` Change to hub server.
+* `/switch <list|name>` 
 
 ### Admin Commands
 * `/team [~|teamname|list|vanish] [filter|username...]` Change team.
@@ -27,20 +29,22 @@
 * `/chat [on|off]` Enabled/disabled the chat.
 * `/spawn <unit> [count] [filter|x,y|username] [~|teamname...]` Spawn a unit.
 * `/godmode [filter|username...]` [God]: I'm divine!
-* `/mute <filter|username|ID> [reason...]` Mute a person by name or ID
-* `/unmute <filter|username|ID>` Unmute a person by name or ID
+* `/mute <filter|username|ID> [reason...]` Mute a person by name or ID.
+* `/unmute <filter|username|ID...>` Unmute a person by name or ID.
+* `/reset <filter|username|ID...>` Resets a player's data.
 
 ### Server Commands
-* `unban-all [y|n]` Unban all ID and IP
-* `auto-pause` Pause the game if no one is connected
-* `chat [on|off]` Enabled/disabled the chat
-* `nice-welcome` Nice welcome for me
-* `commands <list|commandName> [on|off]` Enable/Disable a command. /!\\Requires server restart to apply changes
-* `clear-map [y|n]` Kill all units and destroy all blocks except cores, on the current map
-* `gamemode [name]` Change the gamemode of the current map
-* `blacklist <list|add|remove|clear> <name|ip> [value...]` Players using a nickname or ip in the blacklist cannot connect
+* `unban-all [y|n]` Unban all ID and IP.
+* `auto-pause` Pause the game if no one is connected.
+* `chat [on|off]` Enabled/disabled the chat.
+* `nice-welcome` Nice welcome for me.
+* `commands <list|commandName> [on|off]` Enable/Disable a command. /!\\Requires server restart to apply changes.
+* `clear-map [y|n]` Kill all units and destroy all blocks except cores, on the current map.
+* `gamemode [name]` Change the gamemode of the current map.
+* `blacklist <list|add|remove|clear> <name|ip> [value...]` Players using a nickname or ip in the blacklist cannot connect.
 * `anti-vpn [on|off]` Anti VPN service.
-* `filters <help|on|off>` Enabled/disabled filters
+* `filters <help|on|off>` Enabled/disabled filters.
+* `effect <list|on|off> [id|name]` Enabled/disabled a particles effect.
 
 ### Feedback
 Open an issue if you have a suggestion.
