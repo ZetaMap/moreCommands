@@ -26,7 +26,7 @@
 * `/core <small|medium|big>` Spawn a core to your corrdinate.
 * `/chat [on|off]` Enabled/disabled the chat.
 * `/spawn <unit> [count] [filter|x,y|username] [~|teamname...]` Spawn a unit.
-* `/godmode [username...]` [God]: I'm divine!
+* `/godmode [filter|username...]` [God]: I'm divine!
 * `/mute <filter|username|ID> [reason...]` Mute a person by name or ID
 * `/unmute <filter|username|ID>` Unmute a person by name or ID
 
