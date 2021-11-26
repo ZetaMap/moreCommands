@@ -45,6 +45,7 @@
 * `anti-vpn [on|off]` Anti VPN service.
 * `filters <help|on|off>` Enabled/disabled filters.
 * `effect <list|on|off> [id|name]` Enabled/disabled a particles effect.
+* `switch <list|add|remove> [ip] [name...]` Configure the list of servers in the switch.
 
 ### Feedback
 Open an issue if you have a suggestion.
