@@ -12,8 +12,8 @@
 * `/help [page|filter]` Recreate /help to display only commands related to your rank.
 * `/effect [list|name|id] [page|ID|username...]` Gives you a particle effect. /!\May cause errors
 * `/r <message...>` Reply to the last private message received.
-* `/hub` Change to hub server.
-* `/switch <list|name>` 
+* `/hub` Switch to hub server.
+* `/switch <list|name>` Switch to another server.
 
 ### Admin Commands
 * `/team [~|teamname|list|vanish] [filter|username...]` Change team.
@@ -31,7 +31,7 @@
 * `/godmode [filter|username...]` [God]: I'm divine!
 * `/mute <filter|username|ID> [reason...]` Mute a person by name or ID.
 * `/unmute <filter|username|ID...>` Unmute a person by name or ID.
-* `/reset <filter|username|ID...>` Resets a player's data.
+* `/reset <filter|username|ID...>` Resets a player's data (rainbow, GodMode, muted, ...).
 
 ### Server Commands
 * `unban-all [y|n]` Unban all ID and IP.
