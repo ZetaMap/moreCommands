@@ -12,7 +12,7 @@
 * `/help [page|filter]` Recreate /help to display only commands related to your rank.
 * `/effect [list|name|id] [page|ID|username...]` Gives you a particle effect. /!\May cause errors
 * `/r <message...>` Reply to the last private message received.
-* `/hub` Switch to hub server.
+* `/lobby` Switch to lobby server.
 * `/switch <list|name>` Switch to another server.
 
 ### Admin Commands
