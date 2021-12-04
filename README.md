@@ -2,15 +2,15 @@
 **/!\\This plugin need java 12 or greater./!\\** To dowload java 12, follow steps [here](https://www.oracle.com/fr/java/technologies/javase/jdk12-archive-downloads.html) or greater version [here](https://www.oracle.com/java/technologies/downloads/).
 
 ### Player Commands
-* `/ut` Tells you the name of the unit you are controlling.
-* `/vnw [number]` (VoteNewWave) Vote for Sending a new Wave.
+* `/ut` The name of the unit.
+* `/vnw [number]` Vote for sending a New Wave.
 * `/maps [page]` List all maps on server.
-* `/info-all [ID|username...]` Get all the player information.
+* `/info-all [ID|username...]` Get all player informations.
 * `/rtv [mapName...]` Rock the vote to change map.
 * `/rainbow [ID|username...]` RAINBOW!!
-* `/msg <ID|username> <message...>` Send a message to a player. (replace all spaces with '_' in the name).
+* `/msg <ID|username> <message...>` Send a private message to a player.
 * `/help [page|filter]` Recreate /help to display only commands related to your rank.
-* `/effect [list|name|id] [page|ID|username...]` Gives you a particle effect. /!\May cause errors
+* `/effect [list|name|id] [page|ID|username...]` Gives you a particle effect.
 * `/r <message...>` Reply to the last private message received.
 * `/lobby` Switch to lobby server.
 * `/switch <list|name...>` Switch to another server.
@@ -22,10 +22,10 @@
 * `/pardon <ID>` Pardon a votekicked player by ID and allow them to join again.
 * `/ban <filter|username|ID> [reason...]`  Ban a person.
 * `/unban <ID>` Unban a person.
-* `/players <all|online|ban>` Gives the list of players according to the type of filter given.
+* `/players <all|online|ban>` Display the list of players.
 * `/kill [filter|username...]` Kill a player.
-* `/tp <filter|name|x,y> [~|to_name|x,y...]` Teleport to a coordinate or a player.
-* `/core <small|medium|big>` Spawn a core to your corrdinate.
+* `/tp <filter|name|x,y> [~|to_name|x,y...]` Teleport to a location or player.
+* `/core <small|medium|big>` Build a core at your location.
 * `/chat [on|off]` Enabled/disabled the chat.
 * `/spawn <unit> [count] [filter|x,y|username] [~|teamname...]` Spawn a unit.
 * `/godmode [filter|username...]` [God]: I'm divine!
