@@ -13,7 +13,7 @@
 * `/effect [list|name|id] [page|ID|username...]` Gives you a particle effect. /!\May cause errors
 * `/r <message...>` Reply to the last private message received.
 * `/lobby` Switch to lobby server.
-* `/switch <list|name>` Switch to another server.
+* `/switch <list|name...>` Switch to another server.
 
 ### Admin Commands
 * `/team [~|teamname|list|vanish] [filter|username...]` Change team.
@@ -45,7 +45,7 @@
 * `anti-vpn [on|off]` Anti VPN service.
 * `filters <help|on|off>` Enabled/disabled filters.
 * `effect <list|on|off> [id|name]` Enabled/disabled a particles effect.
-* `switch <list|add|remove> [ip] [name...]` Configure the list of servers in the switch.
+* `switch <help|list|add|remove> [name] [ip] [onlyAdmin]` Configure the list of servers in the switch.
 
 ### Feedback
 Open an issue if you have a suggestion.
