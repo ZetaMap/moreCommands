@@ -28,9 +28,9 @@ public class ArgsFilter {
 		this.unit = unit;
 	}
 	
-	public static FilterSearchReponse hasFilter(Player trigger, String arg) { return hasFilter(trigger, new String[]{arg}); }
-	public static FilterSearchReponse hasFilter(Player trigger, String[] args) {
-		String arg = String.join(" ", args) + " ";
+	public static FilterSearchReponse hasFilter(Player trigger, String[] args) { return hasFilter(trigger, String.join(" ", args)); }
+	public static FilterSearchReponse hasFilter(Player trigger, String arg) {
+		arg = arg + " ";
 		
 		if (trigger.admin) {
 			if (arg.startsWith(FilterType.prefix)) {

@@ -4,6 +4,7 @@ import arc.func.Boolf;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 
+import mindustry.gen.Call;
 import mindustry.gen.Player;
 
 import util.Strings;
@@ -11,9 +12,12 @@ import util.Strings;
 public class TempData {
 	private static ObjectMap<Player, TempData> data = new ObjectMap<>();
 	public static final String creatorID = "k6uyrb9D3dEAAAAArLs28w==";
+	
 	public final Player player;
-	public MSG msgData = new MSG();
+	public final MSG msgData = new MSG();
 	public mindustry.game.Team spectate = null;
+	public Effects effect = Effects.getByName("none");
+	public Thread rainbowLoop, effectLoop;
 	public final String realName, noColorName, stripedName;
 	public int hue = 0;
 	public boolean votedVNW = false, 
@@ -24,21 +28,85 @@ public class TempData {
 		inGodmode = false,
 		isCreator = false;
 	
-	public TempData(Player p){
+	private TempData(Player p){
 		this.player = p;
         this.realName = p.name;
-        this.noColorName = Strings.stripColors(p.name.strip());
-        this.stripedName = String.valueOf(Strings.stripGlyphs(this.noColorName));
+        this.noColorName = Strings.stripColors(p.name).strip();
+        this.stripedName = Strings.stripGlyphs(this.noColorName).strip();
         this.isCreator = p.uuid().equals(creatorID);
+        this.setRainbowLoop();
+        this.setEffectLoop();
     }
 
 	public boolean spectate() {
 		return this.spectate != null;
 	}
 	
+	public void setRainbowLoop() {
+		TempData target = this;
+		
+		this.rainbowLoop = new Thread("RainbowLoop_Player-" + this.player.id) {
+			public void run() {
+				while(target.rainbowed) {
+					try {
+                        if (target.hue < 360) target.hue+=5;
+                        else target.hue = 0;
+                        
+                        for (int i=0; i<5; i++) 
+                        	Call.effectReliable(mindustry.content.Fx.bubble, target.player.x, target.player.y, 10, 
+                        		arc.graphics.Color.valueOf(Integer.toHexString(java.awt.Color.getHSBColor(target.hue / 360f, 1f, 1f).getRGB()).substring(2)));
+                        target.player.name = Strings.RGBString(target.noColorName, target.hue);
+                        
+                        Thread.sleep(64);
+					} catch (InterruptedException e) { return; }
+				}
+			}
+		};
+		this.rainbowLoop.setDaemon(true);
+	}
+	
+	public void setEffectLoop() {
+		TempData target = this;
+		
+		this.effectLoop = new Thread("EffectLoop_Player-" + this.player.id) {
+    		public void run() {
+        		while(target.hasEffect) {
+    				try { 
+    					Call.effectReliable(target.effect.effect, target.player.x, target.player.y, 10, arc.graphics.Color.green);
+    					Thread.sleep(64); 
+    				} catch (InterruptedException e) { return; }
+    			}
+    		}
+    	};
+    	this.effectLoop.setDaemon(true);
+	}
+
+	public void reset() {
+		TempData newData = new TempData(this.player);
+		
+		this.player.name = this.realName;
+		if (spectate()) this.player.team(this.spectate);
+		this.player.unit().health = this.player.unit().maxHealth;
+		this.msgData.removeTarget();
+		this.spectate = newData.spectate;
+		this.effect = newData.effect;
+		this.rainbowLoop = newData.rainbowLoop;
+		this.effectLoop = newData.effectLoop;
+		this.hue = newData.hue;
+		this.votedVNW = newData.votedVNW;
+		this.votedRTV = newData.votedRTV;
+		this.rainbowed = newData.rainbowed;
+		this.hasEffect = newData.hasEffect;
+		this.isMuted = newData.isMuted;
+		this.inGodmode = newData.inGodmode;
+		this.isCreator = newData.isCreator;
+	}
+	
 	public String toString() {
     	return "TempData{" 
-    		+ "player: " + this.player + ", spectate: " + this.spectate 
+    		+ "player: " + this.player + ", msgData: " + this.msgData
+    		+ ", spectate: " + this.spectate + ", effect: " + this.effect 
+    		+ ", rainbowLoop: " + this.rainbowLoop + ", effectLoop: " + this.effectLoop
     		+ ", realName: " + this.realName + ", noColorName: " + this.noColorName 
     		+ ", stripedName: " + this.stripedName + ", hue: " + this.hue
     		+ ", votedVNW: " + this.votedVNW + ", votedRTV: " + this.votedRTV
@@ -47,7 +115,6 @@ public class TempData {
     		+ ", isCreator: " + this.isCreator 
     		+ "}";
     }
-	
 	
 	public static Seq<TempData> copy() {
 		return data.values().toSeq();
@@ -65,19 +132,20 @@ public class TempData {
 		if (p == null) return null;
 		return data.get(p);
 	}
-	
-    public static TempData put(TempData data) {
-    	data.msgData.player = data.player;
-    	TempData.data.put(data.player, data);
-    	return data;
-    }
     
     public static TempData putDefault(Player p) {
-    	return put(new TempData(p));
+    	TempData data_ = new TempData(p);
+    	data_.msgData.player = p;
+    	data.put(p, data_);
+    	return data_;
     }
     
     public static void remove(Player p) {
-    	get(p).msgData.removeTarget();
+    	TempData data_ = get(p);
+    	
+    	data_.msgData.removeTarget();
+    	data_.rainbowLoop.interrupt();
+    	data_.effectLoop.interrupt();
     	data.remove(p);
     }
 
@@ -112,13 +180,16 @@ public class TempData {
     			this.target = target;
     			this.targetOnline = true;
     			t.msgData.target = this.player;
+    			t.msgData.targetOnline = true;
     		}
     	}
     	
     	public void removeTarget() {
     		if (this.target != null) {
 	    		MSG t = TempData.get(this.target).msgData;
-	    		t.target = null;
+	    		
+	    		this.target = null;
+	    		this.targetOnline = false;
 	    		t.targetOnline = false;
     		}
     	}

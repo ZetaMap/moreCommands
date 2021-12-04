@@ -69,12 +69,10 @@ public class CM {
 	}
 	
 	public static void init() {
-		String content = Core.settings.has("handlerManager") ? Core.settings.getString("handlerManager") : "";
-
-		if (!content.equals("")) {
+		if (Core.settings.has("handlerManager")) {
 			try {
 				String[] temp;
-				for (String line : content.split(" \\| ")) {
+				for (String line : Core.settings.getString("handlerManager").split(" \\| ")) {
 					temp = line.split("\\=");
 					commands.put(temp[0], Boolean.parseBoolean(temp[1]));
 				}

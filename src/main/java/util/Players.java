@@ -13,10 +13,12 @@ public class Players {
 	
 	
 	private Players(TempData d, String args) {
+		String[] test = args.strip().split(" ");
+		
 		if (d == null) this.player = null;
 		else this.player = d.player;
 		this.data = d;
-		this.rest = args.strip().split(" ");
+		this.rest = test.length == 1 && test[0].isBlank() ? new String[]{} : test;
 		this.found = this.player != null;
 	}
 	
@@ -28,9 +30,10 @@ public class Players {
 		err(player, "You don't have the permission to use arguments!");
 	}
 	
-	public static boolean errFilterAction(String action, util.filter.FilterSearchReponse filter) {
+	public static boolean errFilterAction(String action, util.filter.FilterSearchReponse filter, boolean type) {
 		if (!filter.type.onlyPlayers()) {
-			err(filter.trigger, "Can @ only players!", action);
+			if (type) err(filter.trigger, "@ is only for players!", action);
+			else err(filter.trigger, "Can @ only players!", action);
 			return true;
 		} else return false;
 	}
@@ -54,7 +57,8 @@ public class Players {
     }
     
     public static Players findByName(String[] args) { return findByName(String.join(" ", args) + " "); }
-    public static Players findByName(String args) {
+    public static Players findByName(String arg) {
+    	String args = arg + " ";
     	TempData target = TempData.find(p -> args.startsWith(p.realName + " "));
     	byte type = 0;
     	
@@ -72,17 +76,16 @@ public class Players {
     }
     
     public static Players findByID(String[] args) { return findByID(String.join(" ", args) + " "); }
-    public static Players findByID(String args) {
+    public static Players findByID(String arg) {
+    	String args = arg + " ";
     	TempData target = TempData.find(p -> args.startsWith(p.player.uuid() + " "));
     	
-    	if (target == null) return new Players(null, args);
-    	else return new Players(target, args.substring(target.player.uuid().length()));
+    	return target == null ? new Players(null, args) : new Players(target, args.substring(target.player.uuid().length()));
     }
     
     public static Players findByNameOrID(String[] args) {
     	Players target = Players.findByName(args);
-    	if (target == null) return Players.findByID(args);
-    	else return target;
+    	return target == null ? Players.findByID(args) : target;
     }
     
     public static void tpPlayer(mindustry.gen.Unit unit, int x, int y) {

@@ -141,21 +141,19 @@ public class BM {
     }
 		
 	@SuppressWarnings("unchecked")
-	public static void init() {
+	public static void load() {
     	try {
-        	if (Core.settings.has("bannedNamesList")) {
-        		bannedNames = Core.settings.getJson("bannedNamesList", Seq.class, Seq::new); 
-        	} else saveSettings();
+        	if (Core.settings.has("bannedNamesList")) bannedNames = Core.settings.getJson("bannedNamesList", Seq.class, Seq::new); 
+        	else saveSettings();
         	
-        	if (Core.settings.has("bannedIpsList")) {
-        		 bannedIps = Core.settings.getJson("bannedIpsList", Seq.class, Seq::new); 
-        	} else saveSettings();
+        	if (Core.settings.has("bannedIpsList")) bannedIps = Core.settings.getJson("bannedIpsList", Seq.class, Seq::new); 
+        	else saveSettings();
         	
     	} catch (Exception e) { saveSettings(); }
     }
     
 	public static void saveSettings() {
-    	Core.settings.putJson("bannedNamesList", new Seq<String>().addAll(bannedNames));
-    	Core.settings.putJson("bannedIpsList", new Seq<String>().addAll(bannedIps));
+    	Core.settings.putJson("bannedNamesList", bannedNames);
+    	Core.settings.putJson("bannedIpsList", bannedIps);
     }
 }

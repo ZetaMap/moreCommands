@@ -32,11 +32,12 @@ public class Strings extends arc.util.Strings {
     	return spaces;
     }
 	
-	public static int bestLength(arc.struct.Seq<String> list) {
-    	int best = 0;
-    	
-    	for (String i : list) 
+	public static int bestLength(Iterable<? extends String> list) {
+		int best = 0;
+
+    	for (String i : list) {
     		if (i.length() > best) best = i.length();
+    	}
 
     	return best;
     }
@@ -64,13 +65,29 @@ public class Strings extends arc.util.Strings {
 	
 	public static String stripGlyphs(CharSequence str){
         StringBuilder out = new StringBuilder();
+        int c;
 
-        for(int i = 0; i < str.length(); i++){
-            int c = str.charAt(i);
+        for(int i=0; i<str.length(); i++){
+            c = str.charAt(i);
             if(c >= 0xE000 && c <= 0xF8FF) continue;
-            out.append((char)c);
+            out.append((char) c);
         }
 
         return out.toString();
-    }
+	}
+	
+	public static boolean choiseOn(String str) {
+		switch (str) {
+			case "on": case "true": case "1": return true;
+			default: return false;
+		}
+	}
+	
+	public static boolean choiseOff(String str) {
+		switch (str) {
+			case "off": case "false": case "0": return true;
+			default: return false;
+		}
+	}
+	
 }
