@@ -62,8 +62,6 @@ Simply place the output jar from the step above in your server's `config/mods` d
 List your currently installed plugins by running the `mods` command.
 
 ### Thanks to...
-This plugin is a grouping of other plugins, with modifications or upgrades.
-
 J-VdS - [TeamPlugin](https://github.com/J-VdS/TeamPlugin)<br>
 Phinner - [BetterCommands](https://github.com/Phinner/BetterCommands)<br>
 Shadow53 - [MindustryAdminPlugin](https://github.com/Shadow53/MindustryAdminPlugin)<br>
