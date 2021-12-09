@@ -186,11 +186,11 @@ public class TempData {
     	
     	public void removeTarget() {
     		if (this.target != null) {
-	    		MSG t = TempData.get(this.target).msgData;
+	    		TempData data = TempData.get(this.target);
 	    		
-	    		this.target = null;
+	    		if (data != null) data.msgData.targetOnline = false;
 	    		this.targetOnline = false;
-	    		t.targetOnline = false;
+	    		
     		}
     	}
     }
