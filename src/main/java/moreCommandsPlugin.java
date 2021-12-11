@@ -1056,8 +1056,9 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	Call.sendMessage(arg[0], "[scarlet]<Admin>[]" + NetClient.colorizeName(player.id, player.name), player)
         );
         
-        commands.add("players", "<all|online|ban>", "Display the list of players", true, (arg, player) -> {
-        	int size = 0;
+        commands.add("players", "<all|online|ban> [page]", "Display the list of players", true, (arg, player) -> {
+        	String message;
+        	Seq<String> list = new Seq<>();
         	StringBuilder builder = new StringBuilder();
         	
             switch (arg[0]) {
@@ -1066,39 +1067,52 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             			player.sendMessage("[green]No player banned");
             			return;
             		}
-            		builder.append("\nTotal banned players : [green]"+ netServer.admins.getBanned().size + ". \n[gold]-------------------------------- \n[accent]Banned Players:");
+            		message = "\nTotal banned players : [green]"+ netServer.admins.getBanned().size + ". \n[gold]-------------------------------- \n[accent]Banned Players:";
             		netServer.admins.getBanned().each(p -> {
-            			builder.append("\n[white]======================================================================\n" +
+            			list.add("\n[white]======================================================================\n" +
             				"[lightgray]" + p.id +"[white] / Name: [lightgray]" + p.lastName.replaceAll("\\[", "[[") + "[white]\n" +
             				" / IP: [lightgray]" + p.lastIP + "[white] / # kick: [lightgray]" + p.timesKicked);
             		});
             		break;
             
             	case "online":
-            		size = Groups.player.size() + 3;
-            		
-            		builder.append("\nTotal online players: [green]" + Groups.player.size() + "[].\n[gold]--------------------------------[]\n[accent]List of players: \n");
+            		message = "\nTotal online players: [green]" + Groups.player.size() + "[].\n[gold]--------------------------------[]\n[accent]List of players:";
             		Groups.player.each(p -> 
-            			builder.append(" - [lightgray]" + p.name.replaceAll("\\[", "[[") + "[] : [accent]'" + p.uuid() + "'[]" + (p.admin ? "[white] | [scarlet]Admin[]" : "") + "\n[accent]")
+            			list.add(" - [lightgray]" + p.name.replaceAll("\\[", "[[") + "[] : [accent]'" + p.uuid() + "'[]" + (p.admin ? "[white] | [scarlet]Admin[]" : "") + "\n[accent]")
             		);
             			
             		break;
             	
             	case "all":
-            		size = Mathf.ceil(netServer.admins.getWhitelisted().size + 3 + netServer.admins.getWhitelisted().size /2);
-            		
-            		builder.append("\nTotal players: [green]" + netServer.admins.getWhitelisted().size + "[].\n[gold]--------------------------------[]\n[accent]List of players: []\n");
+            		message = "\nTotal players: [green]" + netServer.admins.getWhitelisted().size + "[].\n[gold]--------------------------------[]\n[accent]List of players:";
             		netServer.admins.getWhitelisted().each(p -> 
-            			builder.append("[white] - [lightgray]Names: [accent]" + p.names + "[white] - [lightgray]ID: [accent]'" + p.id + "'" + (p.admin ? "[white] | [scarlet]Admin" : "")
+            			list.add("[white] - [lightgray]Names: [accent]" + p.names + "[white] - [lightgray]ID: [accent]'" + p.id + "'" + (p.admin ? "[white] | [scarlet]Admin" : "")
             				+ (p.banned ? "[white] | [orange]Banned" : "") + (Players.findByID(p.id).found ? "[white] | [green]Online" : "") + "\n")
             		);
             		break;
             	
-            	default: Players.err(player, "Invalid arguments.");
+            	default: 
+            		Players.err(player, "Invalid arguments.");
+            		return;
             }
             
-            if (size > 50) Call.infoMessage(player.con, builder.toString());
-            else player.sendMessage(builder.toString());
+            int lines = 12,
+        		page = arg.length == 2 ? Strings.parseInt(arg[1]) : 1,
+        		pages = Mathf.ceil(list.size / lines);
+        	if (list.size % lines != 0) pages++;
+        	
+            if(page > pages || page < 1){
+                player.sendMessage("[scarlet]'page' must be a number between[orange] 1[] and[orange] " + pages + "[].");
+                return;
+            }
+
+            player.sendMessage(message + "[orange] Page [lightgray]" + page + "[gray]/[lightgray]" + pages + "[accent]:");
+            for(int i=(page-1)*lines; i<lines*page; i++){
+            	try { builder.append(list.get(i)); } 
+            	catch (IndexOutOfBoundsException e) { break; }
+            }
+            
+            player.sendMessage(builder.toString());
         });
 
         commands.add("kill", "[filter|username...]", "Kill a player or a unit", true, (arg, player) -> {
