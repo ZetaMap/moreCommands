@@ -1056,7 +1056,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         	Call.sendMessage(arg[0], "[scarlet]<Admin>[]" + NetClient.colorizeName(player.id, player.name), player)
         );
         
-        commands.add("players", "<all|online|ban> [page]", "Display the list of players", true, (arg, player) -> {
+        commands.add("players", "<all|online|admin|ban> [page]", "Display the list of players", true, (arg, player) -> {
         	String message;
         	Seq<String> list = new Seq<>();
         	StringBuilder builder = new StringBuilder();
@@ -1082,6 +1082,15 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             		);
             			
             		break;
+            		
+            	case "admin":
+            		message = "\nTotal admin players: [green]" + netServer.admins.getAdmins().size + "[].\n[gold]--------------------------------[]\n[accent]List of admin players:";
+            		netServer.admins.getAdmins().each(p -> 
+            			list.add("[white] - [lightgray]Names: [accent]" + p.names + "[white] - [lightgray]ID: [accent]'" + p.id + "'" + (p.banned ? "[white] | [orange]Banned" : "") 
+                			+ (Players.findByID(p.id).found ? "[white] | [green]Online" : "") + "\n")
+            		);
+            		
+            		break;
             	
             	case "all":
             		message = "\nTotal players: [green]" + netServer.admins.getWhitelisted().size + "[].\n[gold]--------------------------------[]\n[accent]List of players:";
@@ -1096,7 +1105,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             		return;
             }
             
-            int lines = 12,
+            int lines = 15,
         		page = arg.length == 2 ? Strings.parseInt(arg[1]) : 1,
         		pages = Mathf.ceil(list.size / lines);
         	if (list.size % lines != 0) pages++;
