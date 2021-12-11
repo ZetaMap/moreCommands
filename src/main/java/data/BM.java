@@ -129,15 +129,13 @@ public class BM {
 	}
 	
 	
-	public static void nameCheck(mindustry.gen.Player player) {
+	public static void checkName(mindustry.gen.Player player) {
     	String name = TempData.get(player).stripedName;
     	
     	if (name.startsWith(FilterType.prefix)) player.kick("[scarlet]Your nickname must not start with [orange]'" + FilterType.prefix + "'");
     	else if (bannedNames.contains(name) || name.toLowerCase().equals("[server]") || name.equals("~")) player.kick("[scarlet]This nickname is banned!");
     	else if (bannedClients.contains(name)) player.con.kick("Ingenuine copy of Mindustry.\n\nMindustry is free on: [royal]https://anuke.itch.io/mindustry[]\n");
     	else if (bannedIps.contains(player.con.address)) player.kick("[scarlet]Your IP is blacklisted. [lightgray](ip: " + player.ip() +")");
-    	else if (AntiVpn.isEnabled && AntiVpn.checkIP(player.ip())) 
-    		player.kick("[scarlet]Anti VPN is activated on this server! []Please deactivate your VPN to be able to connect to the server.");	
     }
 		
 	@SuppressWarnings("unchecked")

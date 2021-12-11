@@ -21,31 +21,32 @@ public class AntiVpn {
 	public static boolean checkIP(String ip) {
 		AntiVpn test = new AntiVpn();
 		
-		Core.net.httpGet("https://vpnapi.io/api/" + ip, s -> {
-			Jval content = Jval.read(s.getResultAsString());
-			
-			if (content.get("security") != null) test.foundVpn = content.get("security").asArray().get(0).asBool();
-			timesLeft = timesLimit;
-			
-		}, f -> {
-			Log.err("Anti VPN: An error occurred while finding or processing the player's IP address."
-				+ "\nError: " + f.getMessage());
-			
-			if (vpnFileFound) {
-				Log.info("The search will be done by the reference file (less reliable).");
-				test.foundVpn = vpnServersList.contains(ip);
+		if (isEnabled) 
+			Core.net.httpGet("https://vpnapi.io/api/" + ip, s -> {
+				Jval content = Jval.read(s.getResultAsString());
+				
+				if (content.get("security") != null) test.foundVpn = content.get("security").asArray().get(0).asBool();
 				timesLeft = timesLimit;
-			
-			} else {
-				Log.err("The reference file was not loaded. The player's IP will therefore not be verified.");
 				
-				if (timesLeft++ == timesLimit) {
-					Log.warn("The unsuccessful search limit has been reached. Anti VPN will be deactivated...");
-					isEnabled = false;
+			}, f -> {
+				Log.err("Anti VPN: An error occurred while finding or processing the player's IP address."
+					+ "\nError: " + f.getMessage());
 				
-				} else Log.warn("If this happens another '@' times, the anti VPN will be disabled!", timesLimit-timesLeft);
-			}	
-		});
+				if (vpnFileFound) {
+					Log.info("The search will be done by the reference file (less reliable).");
+					test.foundVpn = vpnServersList.contains(ip);
+					timesLeft = timesLimit;
+				
+				} else {
+					Log.err("The reference file was not loaded. The player's IP will therefore not be verified.");
+					
+					if (timesLeft++ == timesLimit) {
+						Log.warn("The unsuccessful search limit has been reached. Anti VPN will be deactivated...");
+						isEnabled = false;
+					
+					} else Log.warn("If this happens another '@' times, the anti VPN will be disabled!", timesLimit-timesLeft);
+				}	
+			});
 
 		return test.foundVpn;
 	}

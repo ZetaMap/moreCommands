@@ -153,7 +153,7 @@ public class TempData {
     	return data.containsKey(p);
     }
     
-    public static void setAll(arc.func.Cons<TempData> item) {
+    public static void setField(arc.func.Cons<TempData> item) {
     	data.forEach(d -> item.get(d.value));
     }
     

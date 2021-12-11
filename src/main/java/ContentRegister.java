@@ -15,6 +15,7 @@ import mindustry.gen.Groups;
 import mindustry.gen.Player;
 import mindustry.net.Administration.ActionType;
 import mindustry.net.Packets.KickReason;
+import util.Players;
 import data.CM;
 import data.TempData;
 import data.PVars;
@@ -71,8 +72,8 @@ public class ContentRegister {
     	//clear VNW & RTV votes and disabled it on game over
         Events.on(EventType.GameOverEvent.class, e -> {
         	PVars.canVote = false;
-        	TempData.setAll(p -> p.votedVNW = false);
-        	TempData.setAll(p -> p.votedRTV = false);
+        	TempData.setField(p -> p.votedVNW = false);
+        	TempData.setField(p -> p.votedRTV = false);
         });
         
         Events.on(EventType.WorldLoadEvent.class, e -> PVars.canVote = true); //re-enabled votes
@@ -80,13 +81,17 @@ public class ContentRegister {
         Events.on(EventType.PlayerConnect.class, e -> 
         	Threads.daemon("ConnectCheck_Player-" + e.player.id, () -> {
         		String name = TempData.putDefault(e.player).stripedName; //add player in TempData
-        		data.BM.nameCheck(e.player); //check the nickname of this player
-	        	
-	        	//check if the nickname is empty without colors and emoji
+        		
+        		//check if the nickname is empty without colors and emoji
 	        	if (name.isBlank()) e.player.kick(KickReason.nameEmpty);
+        		
+        		data.BM.checkName(e.player); //check the nickname of this player
+        		
+        		//check if player have a VPN
+        		if (util.AntiVpn.checkIP(e.player.ip())) e.player.kick("[scarlet]Anti VPN is activated on this server! []Please deactivate your VPN to be able to connect to the server.");	
 	        	
 	        	//prevent to duplicate nicknames
-	        	if (Groups.player.contains(p -> TempData.get(p).stripedName.equals(name))) e.player.kick(KickReason.nameInUse);		
+        		if (TempData.find(d -> d.player != e.player && d.stripedName.equals(name)) != null) e.player.kick(KickReason.nameInUse);
         	})
         );
         
@@ -139,9 +144,17 @@ public class ContentRegister {
 			this.handler = handler;
 		}
 		
-		public void add(String name, String desc, CommandRunner<Player> runner) { add(name, "", desc, runner); }
-		public void add(String name, String params, String desc, CommandRunner<Player> runner) {
-			this.handler.<Player>register(name, params, desc, (arg, player) -> 
+		public void add(String name, String desc, boolean forAdmin, CommandRunner<Player> runner) { add(name, "", desc, forAdmin, runner); }
+		public void add(String name, String params, String desc, boolean forAdmin, CommandRunner<Player> runner) {
+			if (forAdmin) {
+				PVars.adminCommands.add(name); 
+				
+				this.handler.<Player>register(name, params, desc, (arg, player) -> {
+					if (!Players.adminCheck(player)) return;
+					Threads.daemon("ClientCommandRunner_Player-" + player.id, () -> runner.accept(arg, player));
+				});
+				
+			} else this.handler.<Player>register(name, params, desc, (arg, player) -> 
 				Threads.daemon("ClientCommandRunner_Player-" + player.id, () -> runner.accept(arg, player))
 			);
 			
