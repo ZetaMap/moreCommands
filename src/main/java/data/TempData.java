@@ -157,8 +157,8 @@ public class TempData {
     	data.forEach(d -> item.get(d.value));
     }
     
-    public static Seq<TempData> filter(Boolf<TempData> pred) {
-    	return data.values().toSeq().filter(pred);
+    public static int count(Boolf<TempData> pred) {
+    	return data.values().toSeq().count(pred);
     }
     
     public static TempData find(Boolf<TempData> pred) {

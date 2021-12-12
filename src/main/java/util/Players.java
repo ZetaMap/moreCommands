@@ -1,7 +1,6 @@
 package util;
 
 import mindustry.gen.Player;
-
 import data.TempData;
 
 
@@ -89,17 +88,12 @@ public class Players {
     }
     
     public static void tpPlayer(mindustry.gen.Unit unit, int x, int y) {
-    	new Thread() {
-        	int limit = 30, range = 3;
+    	arc.util.async.Threads.daemon(() -> {
+    		int limit = 30, range = 3;
         	Player player = unit.getPlayer();
         	
-    		public void run() {
-    			for (int i=0; i<10; i++) move();
-    			while ((unit.x < x-range || unit.x > x+range) && (unit.y < y-range || unit.y > y+range) && move());
-    		}
-    		
-    		public boolean move() {
-    			if (limit-- == 0) return false;
+        	while ((unit.x < x-range || unit.x > x+range) && (unit.y < y-range || unit.y > y+range)) {
+        		if (limit-- == 0) break;
     			else {
         			try { 
 	        			unit.set(x, y);
@@ -108,10 +102,9 @@ public class Players {
 			            	mindustry.gen.Call.setPosition(player.con, x, y);
 	        			}
 		            	Thread.sleep(100);
-        			} catch (InterruptedException e) {}
-        			return true;
+        			} catch (InterruptedException e) { break; }
     			}
-    		}
-    	}.start();
+        	};
+    	});
     }
 }
