@@ -1228,21 +1228,15 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
             	return;
             	
             } else if (!newArg.isEmpty()) {
-            	String rest = String.join(" ", newArg);
-            	
-            	
-            	if (rest.equals("~")) {
+            	if (String.join(" ", newArg).equals("~")) {
             		if (result != null && result.XY != null) {
 	            		player.sendMessage("[scarlet]Can't teleport a coordinate to a coordinate or to a player! [lightgray]It's not logic XD.");
 	            		return;	
             		}
             		
             	} else {
-	            	arg[0] = "";
-	            	arg[1] = rest;
-	            	
 	            	if (filter.reponse == Reponses.found) {
-	            		result = new Search(arg, player);
+	            		result = new Search(newArg.toArray(String.class), player);
 						
 						if (result.error) return;
 			            else {

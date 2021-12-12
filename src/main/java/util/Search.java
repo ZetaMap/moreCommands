@@ -22,10 +22,9 @@ public class Search {
     			String co[] = result.rest[0].split(",");
     			
     			if (co.length == 2 && Strings.canParseInt(co[0]) && Strings.canParseInt(co[1])) {
-    				result.rest[0] = "";
 	    			this.player = pDefault;
 	    			this.XY = new int[] {Strings.parseInt(co[0]), Strings.parseInt(co[1])};
-	    			this.rest = result.rest;
+	    			this.rest = new arc.struct.Seq<String>().addAll(result.rest).removeAll(i -> i.isEmpty()).toArray(String.class);
 	    			return;
     			
     			} else Players.err(pDefault, "Wrong coordinates!");

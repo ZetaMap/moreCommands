@@ -55,7 +55,7 @@ public class Players {
     	} else return true;
     }
     
-    public static Players findByName(String[] args) { return findByName(String.join(" ", args) + " "); }
+    public static Players findByName(String[] args) { return findByName(String.join(" ", args)); }
     public static Players findByName(String arg) {
     	String args = arg + " ";
     	TempData target = TempData.find(p -> args.startsWith(p.realName + " "));
@@ -74,7 +74,7 @@ public class Players {
     	else return new Players(target, args.substring((type == 0 ? target.realName : type == 1 ? target.noColorName : target.stripedName).length()));
     }
     
-    public static Players findByID(String[] args) { return findByID(String.join(" ", args) + " "); }
+    public static Players findByID(String[] args) { return findByID(String.join(" ", args)); }
     public static Players findByID(String arg) {
     	String args = arg + " ";
     	TempData target = TempData.find(p -> args.startsWith(p.player.uuid() + " "));
