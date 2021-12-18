@@ -22,7 +22,7 @@
 * `/pardon <ID>` Pardon a votekicked player by ID and allow them to join again.
 * `/ban <filter|username|ID> [reason...]`  Ban a person.
 * `/unban <ID>` Unban a person.
-* `/players <all|online|admin|ban> [page]` Display the list of players.
+* `/players <help|searchFilter> [page]` Display the list of players.
 * `/kill [filter|username...]` Kill a player.
 * `/tp <filter|name|x,y> [~|to_name|x,y...]` Teleport to a location or player.
 * `/core <small|medium|big>` Build a core at your location.
