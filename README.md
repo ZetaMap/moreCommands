@@ -7,7 +7,7 @@
 * `/maps [page]` List all maps on server.
 * `/info-all [ID|username...]` Get all player informations.
 * `/rtv [mapName...]` Rock the vote to change map.
-* `/rainbow [ID|username...]` RAINBOW!!
+* `/rainbow [filter|ID|username...]` RAINBOW!!
 * `/msg <ID|username> <message...>` Send a private message to a player.
 * `/help [page|filter]` Recreate /help to display only commands related to your rank.
 * `/effect [list|name|id] [page|ID|username...]` Gives you a particle effect.
