@@ -25,9 +25,9 @@
 * `/players <help|searchFilter> [page]` Display the list of players.
 * `/kill [filter|username...]` Kill a player.
 * `/tp <filter|name|x,y> [~|to_name|x,y...]` Teleport to a location or player.
-* `/core <small|medium|big>` Build a core at your location.
+* `/core [small|medium|big] [teamName]` Build a core at your location.
 * `/chat [on|off]` Enabled/disabled the chat.
-* `/spawn <unit> [count] [filter|x,y|username] [~|teamname...]` Spawn a unit.
+* `/spawn <unit> [count] [filter|x,y|username] [teamName|~...]` Spawn a unit.
 * `/godmode [filter|username...]` [God]: I'm divine!
 * `/mute <filter|username|ID> [reason...]` Mute a person by name or ID.
 * `/unmute <filter|username|ID...>` Unmute a person by name or ID.
