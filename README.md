@@ -45,7 +45,7 @@
 * `filters <help|on|off>` Enabled/disabled filters.
 * `effect <list|on|off> [id|name]` Enabled/disabled a particles effect.
 * `switch <help|list|add|remove> [name] [ip] [onlyAdmin]` Configure the list of servers in the switch.
-* - [ ] `rank <help|create|remove|set|apply> [arg1] [arg2]` Configure the rank system with tag.
+- [ ] `rank <help|create|remove|set|apply> [arg1] [arg2]` Configure the rank system with tag.
 
 ### Feedback
 Open an issue if you have a suggestion.
