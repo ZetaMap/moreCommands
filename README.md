@@ -41,7 +41,7 @@
 * `clear-map [y|n]` Kill all units and destroy all blocks except cores, on the current map.
 * `gamemode [name]` Change the gamemode of the current map.
 * `blacklist <list|add|remove|clear> <name|ip> [value...]` Players using a nickname or ip in the blacklist cannot connect.
-* `anti-vpn [on|off]` Anti VPN service.
+* `anti-vpn [on|off|limit] [number]` Anti VPN service.
 * `filters <help|on|off>` Enabled/disabled filters.
 * `effect <list|on|off> [id|name]` Enabled/disabled a particles effect.
 * `switch <help|list|add|remove> [name] [ip] [onlyAdmin]` Configure the list of servers in the switch.
