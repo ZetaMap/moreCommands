@@ -2,7 +2,7 @@
 **/!\\This plugin need java 12 or greater./!\\** To dowload java 12, follow steps [here](https://www.oracle.com/fr/java/technologies/javase/jdk12-archive-downloads.html) or greater version [here](https://www.oracle.com/java/technologies/downloads/).
 
 ### Player Commands
-* `/ut` The name of the unit.
+* `/ut [filter|username...]` The name of the unit.
 * `/vnw [number]` Vote for sending a New Wave.
 * `/maps [page]` List all maps on server.
 * `/info-all [ID|username...]` Get all player informations.
@@ -17,7 +17,6 @@
 
 ### Admin Commands
 * `/team [~|teamname|list|vanish] [filter|username...]` Change team.
-* `/am <message...>` Send a message as admin.
 * `/kick <filter|ID|username> [reason...]` Kick a person by name or ID.
 * `/pardon <ID>` Pardon a votekicked player by ID and allow them to join again.
 * `/ban <filter|username|ID> [reason...]`  Ban a person.
@@ -46,6 +45,7 @@
 * `filters <help|on|off>` Enabled/disabled filters.
 * `effect <list|on|off> [id|name]` Enabled/disabled a particles effect.
 * `switch <help|list|add|remove> [name] [ip] [onlyAdmin]` Configure the list of servers in the switch.
+- [] `rank <help|create|remove|set|apply> [arg1] [arg2]` Configure the rank system with tag.
 
 ### Feedback
 Open an issue if you have a suggestion.
