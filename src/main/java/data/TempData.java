@@ -4,21 +4,21 @@ import arc.func.Boolf;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 
-import mindustry.gen.Call;
 import mindustry.gen.Player;
 
 import util.Strings;
 
 public class TempData {
 	private static ObjectMap<Player, TempData> data = new ObjectMap<>();
+	private static Seq<TempData> ordonedData = new Seq<>();
 	public static final String creatorID = "k6uyrb9D3dEAAAAArLs28w==";
 	
 	public final Player player;
 	public final MSG msgData = new MSG();
 	public mindustry.game.Team spectate = null;
 	public Effects effect = Effects.getByName("none");
-	public Thread rainbowLoop, effectLoop;
 	public final String realName, noColorName, stripedName;
+	public String tag = "", stripedTag = tag;
 	public int hue = 0;
 	public boolean votedVNW = false, 
 		votedRTV = false,
@@ -34,51 +34,22 @@ public class TempData {
         this.noColorName = Strings.stripColors(p.name).strip();
         this.stripedName = Strings.stripGlyphs(this.noColorName).strip();
         this.isCreator = p.uuid().equals(creatorID);
-        this.setRainbowLoop();
-        this.setEffectLoop();
     }
 
 	public boolean spectate() {
 		return this.spectate != null;
 	}
 	
-	public void setRainbowLoop() {
-		TempData target = this;
+	public void applyTag() {
+		if (PVars.playerTags.containsKey(this.player.uuid())) {
+			this.tag = PVars.playerTags.get(this.player.uuid());
+			this.stripedTag =  Strings.stripGlyphs(Strings.stripColors(this.tag)).strip();
+			this.tag += "[coral]: ";
 		
-		this.rainbowLoop = new Thread("RainbowLoop_Player-" + this.player.id) {
-			public void run() {
-				while(target.rainbowed) {
-					try {
-                        if (target.hue < 360) target.hue+=5;
-                        else target.hue = 0;
-                        
-                        for (int i=0; i<5; i++) 
-                        	Call.effectReliable(mindustry.content.Fx.bubble, target.player.x, target.player.y, 10, 
-                        		arc.graphics.Color.valueOf(Integer.toHexString(java.awt.Color.getHSBColor(target.hue / 360f, 1f, 1f).getRGB()).substring(2)));
-                        target.player.name = Strings.RGBString(target.noColorName, target.hue);
-                        
-                        Thread.sleep(64);
-					} catch (InterruptedException e) { return; }
-				}
-			}
-		};
-		this.rainbowLoop.setDaemon(true);
-	}
-	
-	public void setEffectLoop() {
-		TempData target = this;
-		
-		this.effectLoop = new Thread("EffectLoop_Player-" + this.player.id) {
-    		public void run() {
-        		while(target.hasEffect) {
-    				try { 
-    					Call.effectReliable(target.effect.effect, target.player.x, target.player.y, 10, arc.graphics.Color.green);
-    					Thread.sleep(64); 
-    				} catch (InterruptedException e) { return; }
-    			}
-    		}
-    	};
-    	this.effectLoop.setDaemon(true);
+		} else if (this.player.admin) {
+			this.tag = "[scarlet]<Admin>[]: ";
+			this.stripedTag = "<Admin>";
+		}
 	}
 
 	public void reset() {
@@ -90,8 +61,8 @@ public class TempData {
 		this.msgData.removeTarget();
 		this.spectate = newData.spectate;
 		this.effect = newData.effect;
-		this.rainbowLoop = newData.rainbowLoop;
-		this.effectLoop = newData.effectLoop;
+		this.tag = newData.tag;
+		this.stripedTag = newData.stripedTag;
 		this.hue = newData.hue;
 		this.votedVNW = newData.votedVNW;
 		this.votedRTV = newData.votedRTV;
@@ -106,9 +77,9 @@ public class TempData {
     	return "TempData{" 
     		+ "player: " + this.player + ", msgData: " + this.msgData
     		+ ", spectate: " + this.spectate + ", effect: " + this.effect 
-    		+ ", rainbowLoop: " + this.rainbowLoop + ", effectLoop: " + this.effectLoop
     		+ ", realName: " + this.realName + ", noColorName: " + this.noColorName 
-    		+ ", stripedName: " + this.stripedName + ", hue: " + this.hue
+    		+ ", stripedName: " + this.stripedName + ", tag: " + this.tag
+    		+ ", stripedTag:" + this.stripedTag + ", hue: " + this.hue
     		+ ", votedVNW: " + this.votedVNW + ", votedRTV: " + this.votedRTV
     		+ ", rainbowed: " + this.rainbowed + ", hasEffect: " + this.hasEffect
     		+ ", isMuted: " + this.isMuted + ", inGodmode: " + this.inGodmode
@@ -117,7 +88,7 @@ public class TempData {
     }
 	
 	public static Seq<TempData> copy() {
-		return data.values().toSeq();
+		return ordonedData;
 	}
 	
 	public static TempData getByName(String name) {
@@ -133,10 +104,12 @@ public class TempData {
 		return data.get(p);
 	}
     
-    public static TempData putDefault(Player p) {
+    public static TempData put(Player p) {
     	TempData data_ = new TempData(p);
+    	
     	data_.msgData.player = p;
     	data.put(p, data_);
+    	ordonedData.add(data_);
     	return data_;
     }
     
@@ -144,9 +117,8 @@ public class TempData {
     	TempData data_ = get(p);
     	
     	data_.msgData.removeTarget();
-    	data_.rainbowLoop.interrupt();
-    	data_.effectLoop.interrupt();
     	data.remove(p);
+    	ordonedData.remove(data_);
     }
 
     public static boolean contains(Player p) {
@@ -155,14 +127,15 @@ public class TempData {
     
     public static void setField(arc.func.Cons<TempData> item) {
     	data.forEach(d -> item.get(d.value));
+    	ordonedData.set(data.values().toSeq());
     }
     
     public static int count(Boolf<TempData> pred) {
-    	return data.values().toSeq().count(pred);
+    	return ordonedData.count(pred);
     }
     
     public static TempData find(Boolf<TempData> pred) {
-    	return data.values().toSeq().find(pred);
+    	return ordonedData.find(pred);
 	}
     
     

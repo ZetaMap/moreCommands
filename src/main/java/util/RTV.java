@@ -36,25 +36,22 @@ public class RTV {
             Call.updateGameOver(winner);
             Log.info("Selected next map to be @.", Strings.stripColors(map.name()));
 
-            Runnable r = () -> {
-                WorldReloader reloader = new WorldReloader();
-                reloader.begin();
+            arc.util.Timer.schedule(() -> {
+            	try {
+            		WorldReloader reloader = new WorldReloader();
+                    reloader.begin();
 
-				mindustry.Vars.world.loadMap(map, map.applyRules(lastMode));
-                state.rules = state.map.applyRules(lastMode);
-                mindustry.Vars.logic.play();
+    				mindustry.Vars.world.loadMap(map, map.applyRules(lastMode));
+                    state.rules = state.map.applyRules(lastMode);
+                    mindustry.Vars.logic.play();
 
-                reloader.end();
-            };
-            arc.util.Timer.schedule(new arc.util.Timer.Task() {
-            	@Override
-            	public void run() {
-            		try { r.run(); } 
-            		catch (mindustry.maps.MapException e) {
-            			Log.err(e.map.name() + ": " + e.getMessage());
-            			net.closeServer();
-            		}
+                    reloader.end();
+            		
+            	} catch (mindustry.maps.MapException e) {
+            		Log.err(e.map.name() + ": " + e.getMessage());
+        			net.closeServer();
             	}
+            	
             }, 12);
             
         } else {

@@ -1,6 +1,8 @@
 package util;
 
+import mindustry.game.Team;
 import mindustry.gen.Player;
+
 import data.TempData;
 
 
@@ -70,8 +72,7 @@ public class Players {
     		type = 2;
     	}
     	
-    	if (target == null) return new Players(null, args);
-    	else return new Players(target, args.substring((type == 0 ? target.realName : type == 1 ? target.noColorName : target.stripedName).length()));
+    	return target == null ? new Players(null, args) : new Players(target, args.substring((type == 0 ? target.realName : type == 1 ? target.noColorName : target.stripedName).length()));
     }
     
     public static Players findByID(String[] args) { return findByID(String.join(" ", args)); }
@@ -82,29 +83,37 @@ public class Players {
     	return target == null ? new Players(null, args) : new Players(target, args.substring(target.player.uuid().length()));
     }
     
-    public static Players findByNameOrID(String[] args) {
-    	Players target = Players.findByName(args);
-    	return target == null ? Players.findByID(args) : target;
+    public static Players findByNameOrID(String[] args) { return findByNameOrID(String.join(" ", args)); }
+    public static Players findByNameOrID(String arg) {
+    	Players target = Players.findByName(arg);
+    	return target.found ? target : Players.findByID(arg);
     }
     
     public static void tpPlayer(mindustry.gen.Unit unit, int x, int y) {
-    	arc.util.async.Threads.daemon(() -> {
-    		int limit = 30, range = 3;
-        	Player player = unit.getPlayer();
-        	
-        	while ((unit.x < x-range || unit.x > x+range) && (unit.y < y-range || unit.y > y+range)) {
-        		if (limit-- == 0) break;
-    			else {
-        			try { 
-	        			unit.set(x, y);
-	        			if (player != null) {
-		        			player.set(x, y);
-			            	mindustry.gen.Call.setPosition(player.con, x, y);
-	        			}
-		            	Thread.sleep(100);
-        			} catch (InterruptedException e) { break; }
-    			}
-        	};
-    	});
+		int limit = 50, range = 3*mindustry.Vars.tilesize;
+    	Player player = unit.getPlayer();
+    	
+    	while (!arc.math.Mathf.within(unit.x, unit.y, x, y, range) && limit-- > 0) {
+			unit.set(x, y);
+			if (player != null) {
+    			player.set(x, y);
+            	mindustry.gen.Call.setPosition(player.con, x, y);
+			}
+			arc.util.Log.info(limit);
+			try { Thread.sleep(100); }
+			catch (Exception e) {}
+    	}
+    }
+    
+    public static Team findTeam(String name) {
+    	switch (name) {
+			case "sharded": return Team.sharded;
+			case "blue": return Team.blue;
+			case "crux": return Team.crux;
+			case "derelict": return Team.derelict;
+			case "green": return  Team.green;
+			case "purple": return Team.purple;
+			default: return null;
+    	}
     }
 }

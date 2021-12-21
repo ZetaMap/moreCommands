@@ -4,11 +4,14 @@ import arc.Core;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 
+import mindustry.net.Host;
+
 import util.Strings;
 
 
 public class Switcher {
 	private static ObjectMap<String, Switcher> list = new ObjectMap<>();
+	private static Seq<Switcher> ordonedList = new Seq<>();
 	public static Switcher lobby = null;
 	
 	private boolean error = false;
@@ -44,29 +47,36 @@ public class Switcher {
 		return this.ip + ":" + this.port;
 	}
 	
+	public Host ping() {
+		Ping ping = new Ping();
+		
+		arc.util.async.Threads.daemon("ServerPing_Name-" + this.name, () -> {
+			mindustry.Vars.net.pingHost(this.ip, this.port, s -> {
+				ping.reponse = s;
+				ping.finished = true;
+			}, f -> ping.finished = true);
+		});
+		
+		while (!ping.finished) {}
+		return ping.reponse;
+	}
+	
 	public ConnectReponse connect(mindustry.gen.Player player) {
 		ConnectReponse reponse = new ConnectReponse();
 
 		if (this.forAdmin && !player.admin) reponse.failed("Server only for admins.");
 		else {
-			arc.util.async.Threads.daemon("ServerPing_Player-" + player.id, () -> 
-				mindustry.Vars.net.pingHost(this.ip, this.port, s -> {
-					if (s.playerLimit > 0 && s.players >= s.playerLimit) reponse.failed("Server full. (" + s.players + "/" + s.playerLimit + ")");
-					else if (s.version != mindustry.core.Version.build) reponse.failed("Incompatible version. Required: " + s.version);
-					else mindustry.gen.Call.connect(player.con, this.ip, this.port);
-					
-					reponse.pingFinished = true;
-					
-				}, f -> {
-					reponse.failed("The server not responding. (Connexion timed out!)");
-					reponse.pingFinished = true;
-				})
-			);
-			while (!reponse.pingFinished) {}
+			Host ping = ping();
+			
+			if (ping == null) reponse.failed("The server not responding. (Connexion timed out!)");
+			else if (ping.playerLimit > 0 && ping.players >= ping.playerLimit) reponse.failed("Server full. (" + ping.players + "/" + ping.playerLimit + ")");
+			else if (ping.version != mindustry.core.Version.build) reponse.failed("Incompatible version. Required: " + ping.version);
+			else mindustry.gen.Call.connect(player.con, this.ip, this.port);
 		}
 
 		return reponse;
 	}
+	
 	
 	public static Switcher put(String name, String ip, boolean admin) {
 		name = name.replace('_', ' ').strip();
@@ -80,7 +90,11 @@ public class Switcher {
 			lobby = new_;
 			lobby.name = stripedName;
 			
-		} else new_.changed = list.put(stripedName, new_) == null ? false : true;
+		} else {
+			new_.changed = list.put(stripedName, new_) == null ? false : true;
+			if (new_.changed) ordonedList.remove(s -> s.name.equals(new_.name));
+			ordonedList.add(new_);
+		}
 		
 		return new_;
 	}
@@ -93,7 +107,10 @@ public class Switcher {
 			value = lobby;
 			lobby = null;
 		
-		} else value = list.remove(name);
+		} else {
+			value = list.remove(name);
+			ordonedList.remove(value);
+		}
 
 		return value;
 	}
@@ -103,24 +120,24 @@ public class Switcher {
 	}
 	
 	public static Switcher getByIP(String ip) {
-		 return list.values().toSeq().find(i -> ip.equals(i.address()));
+		 return ordonedList.find(i -> ip.equals(i.address()));
 	}
 	
-	public static Seq<String> names(boolean isAdmin) {
-		if (isAdmin) return list.values().toSeq().map(i -> i.name);
-		else return list.values().toSeq().filter(i -> !i.forAdmin).map(i -> i.name);
+	public static Seq<String> names() {
+		return ordonedList.map(i -> i.name);
 	}
 	
 	public static Seq<String> ips() {
-		return list.values().toSeq().map(i -> i.ip);
+		return ordonedList.map(i -> i.ip);
 	}
 	
 	public static Seq<Integer> ports() {
-		return list.values().toSeq().map(i -> i.port);
+		return ordonedList.map(i -> i.port);
 	}
 	
-	public static void each(arc.func.Cons<Switcher> consumer) {
-		list.values().toSeq().each(consumer);
+	public static void each(boolean isAdmin, arc.func.Cons<Switcher> consumer) {
+		if (isAdmin) ordonedList.each(consumer);
+		else ordonedList.select(s -> !s.forAdmin).each(consumer);
 	}
 	
 	public static boolean isEmpty() {
@@ -136,7 +153,6 @@ public class Switcher {
 		if (Core.settings.has("SwitchList"))
 			Core.settings.getJson("SwitchList", ObjectMap.class, ObjectMap::new).each((k, v) -> {
 				String value = (String) v;
-
 				put((String) k, value.subSequence(0, value.lastIndexOf('-')).toString(), Boolean.valueOf(value.substring(value.lastIndexOf('-')+1)));
 			});
 		
@@ -144,13 +160,12 @@ public class Switcher {
 	}
 	
 	public static void saveSettings() {
-		if (lobby == null) Core.settings.putJson("SwitchList", list.values().toSeq().asMap(i -> i.name, i -> i.address() + "-" + i.forAdmin));
-		else Core.settings.putJson("SwitchList", list.values().toSeq().addAll(lobby).asMap(i -> i.name, i -> i.address() + "-" + i.forAdmin));
+		if (lobby == null) Core.settings.putJson("SwitchList", ordonedList.asMap(i -> i.name, i -> i.address() + "-" + i.forAdmin));
+		else Core.settings.putJson("SwitchList", ordonedList.addAll(lobby).asMap(i -> i.name, i -> i.address() + "-" + i.forAdmin));
 	}
 	
 	
 	public static class ConnectReponse {
-		private volatile boolean pingFinished = false;
 		public boolean failed = false;
 		public String message = "Connection success.";
 		
@@ -161,5 +176,11 @@ public class Switcher {
 			this.failed = true;
 			this.message = message;
 		}
+	}
+	
+	
+	private static class Ping {
+		volatile boolean finished = false;
+		Host reponse = null;
 	}
 }

@@ -5,6 +5,7 @@ import arc.Events;
 import arc.func.Cons;
 import arc.util.CommandHandler;
 import arc.util.Log;
+import arc.util.Timer;
 import arc.util.CommandHandler.CommandRunner;
 import arc.util.async.Threads;
 
@@ -15,8 +16,10 @@ import mindustry.gen.Groups;
 import mindustry.gen.Player;
 import mindustry.net.Administration.ActionType;
 import mindustry.net.Packets.KickReason;
+
 import util.Players;
-import data.CM;
+import util.Strings;
+import data.CommandsManager;
 import data.TempData;
 import data.PVars;
 
@@ -54,14 +57,8 @@ public class ContentRegister {
     	//filter for players in GodMode
     	netServer.admins.addActionFilter(a -> {
     		if (a.player != null && TempData.get(a.player).inGodmode) {
-    			if (a.type == ActionType.placeBlock) {
-    				Call.constructFinish(a.tile, a.block, a.unit, (byte) a.rotation, a.player.team(), a.config);
-    				return false;
-    			
-    			} else if (a.type == ActionType.breakBlock) {
-    				Call.deconstructFinish(a.tile, a.block, a.unit);
-    				return false;
-    			}
+    			if (a.type == ActionType.placeBlock) Call.constructFinish(a.tile, a.block, a.unit, (byte) a.rotation, a.player.team(), a.config);
+    			else if (a.type == ActionType.breakBlock) Call.deconstructFinish(a.tile, a.block, a.unit);
     		}
     		
     		return true;
@@ -74,54 +71,83 @@ public class ContentRegister {
         	PVars.canVote = false;
         	TempData.setField(p -> p.votedVNW = false);
         	TempData.setField(p -> p.votedRTV = false);
+        	PVars.rtvSession.cancel();
+        	PVars.vnwSession.cancel();
         });
         
         Events.on(EventType.WorldLoadEvent.class, e -> PVars.canVote = true); //re-enabled votes
         
         Events.on(EventType.PlayerConnect.class, e -> 
         	Threads.daemon("ConnectCheck_Player-" + e.player.id, () -> {
-        		String name = TempData.putDefault(e.player).stripedName; //add player in TempData
+        		String name = Strings.stripGlyphs(Strings.stripColors(e.player.name)).strip();
         		
         		//check if the nickname is empty without colors and emoji
-	        	if (name.isBlank()) e.player.kick(KickReason.nameEmpty);
+	        	if (name.isBlank()) {
+	        		e.player.kick(KickReason.nameEmpty);
+	        		return;
+	        	}
         		
-        		data.BM.checkName(e.player); //check the nickname of this player
-        		
-        		//check if player have a VPN
-        		if (util.AntiVpn.checkIP(e.player.ip())) e.player.kick("[scarlet]Anti VPN is activated on this server! []Please deactivate your VPN to be able to connect to the server.");	
-	        	
-	        	//prevent to duplicate nicknames
-        		if (TempData.find(d -> d.player != e.player && d.stripedName.equals(name)) != null) e.player.kick(KickReason.nameInUse);
+	        	//check the nickname of this player
+        		if (data.BansManager.checkName(e.player, name)) return; 
+
+	        	//check if player have a VPN
+	        	if (util.AntiVpn.checkIP(e.player.ip())) {
+	        		e.player.kick("[scarlet]Anti VPN is activated on this server! []Please deactivate your VPN to be able to connect to the server.");
+	        		return;
+	        	}
+		        	
+		        //prevent to duplicate nicknames
+	        	if (TempData.count(d -> d.stripedName.equals(name)) != 0) e.player.kick(KickReason.nameInUse);	
         	})
         );
         
         Events.on(EventType.PlayerJoin.class, e -> {
+        	TempData data = TempData.put(e.player); //add player in TempData
+        	
         	//for me =)
-        	if (TempData.get(e.player).isCreator) { 
+        	if (data.isCreator) { 
         		if (PVars.niceWelcome) 
-        			Call.sendMessage("[scarlet]\ue80f " + NetClient.colorizeName(e.player.id, e.player.name) + "[scarlet] has connected! \ue80f   [lightgray]Everyone say: Hello creator! XD");
-        		Call.infoMessage(e.player.con, "Hello creator ! =)");
+        			Call.sendMessage("[scarlet]\ue80f" + NetClient.colorizeName(e.player.id, e.player.name) + "[scarlet] has connected!\ue80f [lightgray](Everyone must say: Hello creator! XD)");
+        		Call.infoMessage(e.player.con, "Welcome creator! =)");
         	}
         	
         	//unpause the game if one player is connected
-        	if (Groups.player.size() == 1 && PVars.autoPause) {
+        	if (PVars.autoPause && Groups.player.size() > 0) {
         		state.serverPaused = false;
-        		Log.info("auto-pause: " + Groups.player.size() + " player connected -> Game unpaused...");
+        		Log.info("auto-pause: Game unpaused...");
         		Call.sendMessage("[scarlet][Server]:[] Game unpaused...");
         	}
         	
         	//fix the admin bug
         	if (e.player.getInfo().admin) e.player.admin = true;
+        	
+        	//mute the player if the player has already been muted
+        	if (PVars.recentMutes.contains(e.player.uuid())) data.isMuted = true;
+        	
+        	data.applyTag();
         });
         
         Events.on(EventType.PlayerLeave.class, e -> {
         	//pause the game if no one is connected
-        	if (Groups.player.size()-1 < 1 && PVars.autoPause) {
+        	if (PVars.autoPause && Groups.player.size()-1 == 0) {
         		state.serverPaused = true;
-        		Log.info("auto-pause: " + (Groups.player.size()-1) + " player connected -> Game paused...");
+        		Log.info("auto-pause: Game paused...");
         	}
         	
         	TempData.remove(e.player); //remove player in TempData
+        });
+        
+        //fix /votekick bug 
+        Events.on(EventType.PlayerChatEvent.class, e -> {
+        	if (e.message.startsWith("/votekick ") && mindustry.net.Administration.Config.enableVotekick.bool() && Groups.player.size() > 2 && !e.player.isLocal()) {
+        		Players target = Players.findByName(Strings.stripGlyphs(Strings.stripColors(e.message.substring(10))).strip());
+        		
+        		if (target.found && target.data.rainbowed) {
+        			target.data.rainbowed = false;
+        			target.player.name = e.message.substring(10);
+        			arc.util.Timer.schedule(() -> target.data.rainbowed = true, 0.2f);
+        		}
+        	}
         });
 	}
 	
@@ -129,7 +155,7 @@ public class ContentRegister {
 		Threads.daemon("CommandManagerWaiter-" + handler.getPrefix(), () -> {
 			try {
 				Thread.sleep(1000);
-				CM.load(handler);
+				CommandsManager.load(handler);
 			} catch (InterruptedException e) { e.printStackTrace(); }
 		});
 		
@@ -144,26 +170,34 @@ public class ContentRegister {
 			this.handler = handler;
 		}
 		
-		public void add(String name, String desc, boolean forAdmin, CommandRunner<Player> runner) { add(name, "", desc, forAdmin, runner); }
-		public void add(String name, String params, String desc, boolean forAdmin, CommandRunner<Player> runner) {
-			if (forAdmin) {
-				PVars.adminCommands.add(name); 
+		public void add(String name, String params, String desc, boolean forAdmin, boolean inThread, CommandRunner<Player> runner) {
+			if (forAdmin) PVars.adminCommands.add(name); 
+			
+			this.handler.<Player>register(name, params, desc, (arg, player) -> {
+				if (forAdmin && !Players.adminCheck(player)) return;
 				
-				this.handler.<Player>register(name, params, desc, (arg, player) -> {
-					if (!Players.adminCheck(player)) return;
-					Threads.daemon("ClientCommandRunner_Player-" + player.id, () -> runner.accept(arg, player));
-				});
-				
-			} else this.handler.<Player>register(name, params, desc, (arg, player) -> 
-				Threads.daemon("ClientCommandRunner_Player-" + player.id, () -> runner.accept(arg, player))
-			);
+				if (inThread) Threads.daemon("ClientCommandRunner_Player-" + player.id, () -> runner.accept(arg, player));
+				else Timer.schedule(() -> {
+					try { runner.accept(arg, player); } 
+					catch (Exception e) {
+						Log.err("Exception in Timer \"ClientCommandRunner_Player-@\"", player.id);
+						e.printStackTrace();
+					}
+				}, 0);
+			});
 			
 		}
 		
 		public void add(String name, String desc, Cons<String[]> runner) { add(name, "", desc, runner); }
 		public void add(String name, String params, String desc, Cons<String[]> runner) {
 			this.handler.register(name, params, desc, (arg) -> 
-				Threads.daemon("ServerCommandRunner_Name-" + name, () -> runner.get(arg))
+				Timer.schedule(() -> {
+					try { runner.get(arg); } 
+					catch (Exception e) {
+						Log.err("Exception in Timer \"ServerCommandRunner_Name-@\"", name);
+						e.printStackTrace();
+					}
+				 }, 0)
 			);
 		}
 	}

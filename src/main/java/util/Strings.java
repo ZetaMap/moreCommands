@@ -49,7 +49,7 @@ public class Strings extends arc.util.Strings {
     		if (hue < 360) hue+=10;
     		else hue = 0;
     		
-    		out += "[#" + Integer.toHexString(java.awt.Color.getHSBColor(hue / 360f, 1f, 1f).getRGB()).substring(2) + "]" + c;
+    		out += (c == '[' ? "[[#" : "[#") + Integer.toHexString(java.awt.Color.getHSBColor(hue / 360f, 1f, 1f).getRGB()).substring(2) + "]" + c;
     	}
     	
         return out;
