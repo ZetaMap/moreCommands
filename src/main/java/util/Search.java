@@ -1,21 +1,20 @@
 package util;
 
 import arc.struct.Seq;
-
-import mindustry.gen.Player;
+import data.TempData;
 
 
 public class Search {
-	public Player player = null;
+	public TempData player = null;
 	public int[] XY = null;
 	public String[] rest = {};
 	public boolean error = false;
 	
-	public Search(String[] str, Player pDefault) {
+	public Search(String[] str, TempData pDefault) {
 		Players result = Players.findByName(str);
     	
     	if (result.found) {
-    		this.player = result.player;
+    		this.player = result.data;
     		this.rest = result.rest;
     	
     	} else {
@@ -32,8 +31,8 @@ public class Search {
 	    			this.rest = rest.toArray(String.class);
 	    			return;
     			
-    			} else Players.err(pDefault, "Wrong coordinates!");
-    		} else Players.errNotOnline(pDefault);
+    			} else Players.err(pDefault.player, "Wrong coordinates!");
+    		} else Players.errNotOnline(pDefault.player);
     		
     		this.error = true;
     	}

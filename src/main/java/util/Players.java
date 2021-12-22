@@ -31,7 +31,7 @@ public class Players {
 		err(player, "You don't have the permission to use arguments!");
 	}
 	
-	public static boolean errFilterAction(String action, util.filter.FilterSearchReponse filter, boolean type) {
+	public static boolean errFilterAction(String action, filter.FilterSearchReponse filter, boolean type) {
 		if (!filter.type.onlyPlayers()) {
 			if (type) err(filter.trigger, "@ is only for players!", action);
 			else err(filter.trigger, "Can @ only players!", action);

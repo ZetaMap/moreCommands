@@ -9,6 +9,7 @@ import mindustry.gen.Call;
 
 public class PVars {
 	public static ObjectMap<String, String> playerTags = new ObjectMap<>();
+	public static String settingsPath = "moreCommands_settings/";
 	public static Seq<String> adminCommands = new Seq<>(),
 		recentMutes = new Seq<>();
     public static mindustry.maps.Map selectedMap;

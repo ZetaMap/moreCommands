@@ -92,7 +92,7 @@ public class Effects {
                     for (int i=0; i<5; i++) 
                     	Call.effectReliable(mindustry.content.Fx.bubble, d.player.x, d.player.y, 10, 
                     		arc.graphics.Color.valueOf(Integer.toHexString(java.awt.Color.getHSBColor(d.hue / 360f, 1f, 1f).getRGB()).substring(2)));
-                    d.player.name = Strings.RGBString(d.noColorName, d.hue);
+                    d.player.name = d.tag + Strings.RGBString(d.noColorName, d.hue);
 				});
 			}
 		};

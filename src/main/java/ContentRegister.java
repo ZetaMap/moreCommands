@@ -19,8 +19,8 @@ import mindustry.net.Packets.KickReason;
 
 import util.Players;
 import util.Strings;
-import data.CommandsManager;
 import data.TempData;
+import manager.CommandsManager;
 import data.PVars;
 
 
@@ -29,29 +29,21 @@ public class ContentRegister {
 		//filter for muted, rainbowed players and disabled chat
     	netServer.admins.addChatFilter((p, m) -> {
     		TempData data = TempData.get(p);
-    		
+
     		if (PVars.tchat) {
     			if (data.isMuted) {
-    				util.Players.err(p, "You're muted, you can't speak.");
-    				m = null;
-    			
-    			} else if (data.rainbowed) {
-    				Log.info("RAINBOWED: <@: @>", data.realName, m);
-    				Call.sendMessage(m, p.name, p);
-    				m = null;
+	    			util.Players.err(p, "You're muted, you can't speak.");
+					return null;	
     			}
-
-    		} else {
-    			if (p.admin) {
-    				Call.sendMessage(m, "[scarlet]<Admin>[]" + NetClient.colorizeName(p.id, p.name), p);
-    				if (data.rainbowed) Log.info("ADMIN: RAINBOWED: <@: @>",  p.name, m);
-    				else Log.info("ADMIN: <@: @>",  p.name, m);
-    			
-    			} else p.sendMessage("[scarlet]The tchat is disabled, you can't write!");
-    			m = null;
+				
+    		} else if (!p.admin) {
+    			p.sendMessage("[scarlet]The tchat is disabled, you can't write!");
+    			return null;
     		}
-    		
-    		return m;
+
+    		Log.info("@[@]<@: @>", data.rainbowed ? "RAINBOWED: " : data.spectate() ? "VANISHED: " : "", data.stripedTag, data.realName, m);
+    		Call.sendMessage(Strings.format("[coral][[@[coral]]:[white] @", NetClient.colorizeName(p.id, p.name), m));	
+    		return null;
     	});
     	
     	//filter for players in GodMode
@@ -88,7 +80,7 @@ public class ContentRegister {
 	        	}
         		
 	        	//check the nickname of this player
-        		if (data.BansManager.checkName(e.player, name)) return; 
+        		if (manager.BansManager.checkName(e.player, name)) return; 
 
 	        	//check if player have a VPN
 	        	if (util.AntiVpn.checkIP(e.player.ip())) {
@@ -124,7 +116,9 @@ public class ContentRegister {
         	//mute the player if the player has already been muted
         	if (PVars.recentMutes.contains(e.player.uuid())) data.isMuted = true;
         	
+        	//apply the tag of this player
         	data.applyTag();
+        	data.resetName();
         });
         
         Events.on(EventType.PlayerLeave.class, e -> {
@@ -170,15 +164,15 @@ public class ContentRegister {
 			this.handler = handler;
 		}
 		
-		public void add(String name, String params, String desc, boolean forAdmin, boolean inThread, CommandRunner<Player> runner) {
+		public void add(String name, String params, String desc, boolean forAdmin, boolean inThread, CommandRunner<TempData> runner) {
 			if (forAdmin) PVars.adminCommands.add(name); 
 			
 			this.handler.<Player>register(name, params, desc, (arg, player) -> {
 				if (forAdmin && !Players.adminCheck(player)) return;
 				
-				if (inThread) Threads.daemon("ClientCommandRunner_Player-" + player.id, () -> runner.accept(arg, player));
+				if (inThread) Threads.daemon("ClientCommandRunner_Player-" + player.id, () -> runner.accept(arg, TempData.get(player)));
 				else Timer.schedule(() -> {
-					try { runner.accept(arg, player); } 
+					try { runner.accept(arg, TempData.get(player)); } 
 					catch (Exception e) {
 						Log.err("Exception in Timer \"ClientCommandRunner_Player-@\"", player.id);
 						e.printStackTrace();

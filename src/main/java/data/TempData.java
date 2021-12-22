@@ -40,15 +40,23 @@ public class TempData {
 		return this.spectate != null;
 	}
 	
+	public void resetName() {
+		this.player.name = this.tag + this.realName;
+	}
+	
 	public void applyTag() {
 		if (PVars.playerTags.containsKey(this.player.uuid())) {
-			this.tag = PVars.playerTags.get(this.player.uuid());
+			this.tag = "[white]" + PVars.playerTags.get(this.player.uuid());
 			this.stripedTag =  Strings.stripGlyphs(Strings.stripColors(this.tag)).strip();
 			this.tag += "[coral]: ";
 		
 		} else if (this.player.admin) {
-			this.tag = "[scarlet]<Admin>[]: ";
+			this.tag = "[scarlet]<Admin>[coral]: ";
 			this.stripedTag = "<Admin>";
+		
+		} else {
+			this.tag = "";
+			this.stripedTag = this.tag;
 		}
 	}
 
@@ -107,7 +115,7 @@ public class TempData {
     public static TempData put(Player p) {
     	TempData data_ = new TempData(p);
     	
-    	data_.msgData.player = p;
+    	data_.msgData.player = data_;
     	data.put(p, data_);
     	ordonedData.add(data_);
     	return data_;
@@ -140,28 +148,24 @@ public class TempData {
     
     
     public class MSG {
-    	public Player player = null, target = null;
+    	public TempData player = null, target = null;
     	public boolean targetOnline = false;
     	
     	private MSG() {
     	}
     	
-    	public void setTarget(Player target) {
-    		TempData t = TempData.get(target);
-    		
-    		if (t != null) {
+    	public void setTarget(TempData target) {
+    		if (target != null) {
     			this.target = target;
     			this.targetOnline = true;
-    			t.msgData.target = this.player;
-    			t.msgData.targetOnline = true;
+    			target.msgData.target = this.player;
+    			target.msgData.targetOnline = true;
     		}
     	}
     	
     	public void removeTarget() {
     		if (this.target != null) {
-	    		TempData data = TempData.get(this.target);
-	    		
-	    		if (data != null) data.msgData.targetOnline = false;
+	    		this.target.msgData.targetOnline = false;
 	    		this.targetOnline = false;
 	    		
     		}
