@@ -49,7 +49,10 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         else Core.settings.put("AutoPause", PVars.autoPause);
 		
 		if (Core.settings.has("PlayersTags")) PVars.playerTags = Core.settings.getJson("PlayersTags", ObjectMap.class, ObjectMap::new);
-		else Core.settings.put("PlayersTags", new ObjectMap<String, String>());
+		else Core.settings.putJson("PlayersTags", new ObjectMap<String, String>());
+		
+		if (Core.settings.has("BansReason")) PVars.bansReason = Core.settings.getJson("BansReason", ObjectMap.class, ObjectMap::new);
+		else Core.settings.putJson("BansReason", new ObjectMap<String, String>());
     	
     	//init events
 		ContentRegister.initEvents(); 
@@ -79,6 +82,36 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
     @Override
     public void registerServerCommands(CommandHandler handler){
     	ContentRegister.CommandsRegister commands = ContentRegister.setHandler(handler);
+    	
+    	handler.removeCommand("bans");
+    	commands.add("bans", "List all banned IPs and IDs", arg -> {
+            Seq<PlayerInfo> bans = netServer.admins.getBanned();
+
+            if(bans.size == 0){
+                Log.info("No ID-banned players have been found.");
+            }else{
+                Log.info("Banned players [ID]:");
+                for(PlayerInfo info : bans){
+                    Log.info("| @ - Last name: '@' - Reason: @", info.id, info.lastName, PVars.bansReason.get(info.id, "<unknown>"));
+                }
+            }
+
+            Seq<String> ipbans = netServer.admins.getBannedIPs();
+
+            if(ipbans.size == 0){
+                Log.info("No IP-banned players have been found.");
+            }else{
+                Log.info("Banned players [IP]:");
+                for(String string : ipbans){
+                    PlayerInfo info = netServer.admins.findByIP(string);
+                    if(info != null){
+                        Log.info("| '@' - Last name: '@' - ID: '@'", string, info.lastName, info.id);
+                    }else{
+                        Log.info("| '@' (No name or info)", string);
+                    }
+                }
+            }
+        });
     	
     	commands.add("unban-all", "[y|n]", "Unban all IP and ID", arg -> {
     		if (arg.length == 1 && !PVars.unbanConfirm) {
@@ -1781,9 +1814,11 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
 		        			+ "\nReason: [white]" + (reason.isBlank() ? "<unknown>" : reason) + "\n[gold]--------------------\n");
 		        		if (reason.isBlank()) ctx.player.kick(KickReason.banned);
 		                else ctx.player.kick("You are banned on this server!\n[scarlet]Reason: []" + reason);
+		        		PVars.bansReason.put(ctx.player.uuid(), reason.isBlank() ? "<unknown>" : reason);
 		        		
         			} else Players.err(data.player, "Can't ban an admin!");
         		});
+        		saveSettings();
         		
         	} else {
 	        	Players result = Players.findByNameOrID(arg);
@@ -1797,6 +1832,8 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
 		        			+ "[scarlet] has been banned of the server.\nReason: [white]" + (reason.isBlank() ? "<unknown>" : reason) + "\n[gold]--------------------\n");
 		        		if (reason.isBlank()) result.player.kick(KickReason.banned);
 		                else result.player.kick("You are banned on this server!\n[scarlet]Reason: []" + reason);
+		        		PVars.bansReason.put(result.player.uuid(), reason.isBlank() ? "<unknown>" : reason);
+		        		saveSettings();
 	        		
 	        		} else Players.err(data.player, "Can't ban an admin!");
 	        	} else Players.err(data.player, "No matches found.");
@@ -1804,8 +1841,12 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         });
         
         commands.add("unban", "<ID>", "Unban a person", true, false, (arg, data) -> {
-            if (netServer.admins.unbanPlayerID(arg[0])) Players.info(data.player, "Unbanned player: [accent]" + arg[0]);
-            else Players.err(data.player, "That IP/ID is not banned!");
+            if (netServer.admins.unbanPlayerID(arg[0])) {
+            	Players.info(data.player, "Unbanned player: [accent]" + arg[0]);
+            	PVars.bansReason.remove(arg[0]);
+            	saveSettings();
+            	
+            } else Players.err(data.player, "That IP/ID is not banned!");
         });
         
     }
@@ -1813,6 +1854,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
     private void saveSettings() {
     	Core.settings.put("AutoPause", PVars.autoPause);
     	Core.settings.putJson("PlayersTags", PVars.playerTags);
+    	Core.settings.putJson("BansReason", PVars.bansReason);
     }
 
     private Team getPosTeamLoc(Player p){

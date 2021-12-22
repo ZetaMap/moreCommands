@@ -11,6 +11,7 @@ import filter.FilterType.*;
 
 
 public class ArgsFilter {
+	@SuppressWarnings("unused")
 	private static ObjectMap<Arguments, Object> defaultArguments = new ObjectMap<>();
 	public static String[] filters = new arc.struct.Seq<FilterType>().addAll(FilterType.values()).map(f -> f.getValue()).toArray(String.class);
 	public static boolean enabled = true;
