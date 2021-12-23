@@ -20,7 +20,6 @@
 * `/kick <filter|ID|username> [reason...]` Kick a person by name or ID.
 * `/pardon <ID>` Pardon a votekicked player by ID and allow them to join again.
 * `/ban <filter|username|ID> [reason...]`  Ban a person.
-* `/unban <ID>` Unban a person.
 * `/players <help|searchFilter> [page]` Display the list of players.
 * `/kill [filter|username...]` Kill a player.
 * `/tp <filter|name|x,y> [~|to_name|x,y...]` Teleport to a location or player.
