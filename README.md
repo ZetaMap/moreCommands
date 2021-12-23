@@ -29,7 +29,7 @@
 * `/godmode [filter|username...]` [God]: I'm divine!
 * `/mute <filter|username|ID> [reason...]` Mute a person by name or ID.
 * `/unmute <filter|username|ID...>` Unmute a person by name or ID.
-* `/reset <filter|username|ID...>` Resets a player's data (rainbow, GodMode, muted, ...).
+* `/reset <filter|username|ID...>` Resets a player's game data (rainbow, GodMode, muted, ...).
 
 ### Server Commands
 * `unban-all [y|n]` Unban all ID and IP.
