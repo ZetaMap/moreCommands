@@ -45,7 +45,7 @@
 * `effect <list|on|off> [id|name]` Enabled/disabled a particles effect.
 * `switch <help|list|add|remove> [name] [ip] [onlyAdmin]` Configure the list of servers in the switch.
 * `tag <list|add|remove> [ID] [tagName...]` Configure the tag system.
-* `bans <list|add|remove|reset> [type-id|ip] [ID|IP] [reason...]` List all banned IP/ID or ban/unban an ID/IP.
+* `bans <list|ban|unban|reset> [type-id|ip] [ID|IP] [reason...]` List all banned IP/ID or ban/unban an ID/IP.
 * `alogs [on|off|reset] [y|n]` Configure admins logs.
 
 ### Feedback
