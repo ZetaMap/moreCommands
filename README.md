@@ -33,7 +33,6 @@
 * `/reset <filter|username|ID...>` Resets a player's game data (rainbow, GodMode, muted, ...).
 
 ### Server Commands
-* `unban-all [y|n]` Unban all ID and IP.
 * `auto-pause` Pause the game if no one is connected.
 * `chat [on|off]` Enabled/disabled the chat.
 * `nice-welcome` Nice welcome for me.
@@ -46,7 +45,7 @@
 * `effect <list|on|off> [id|name]` Enabled/disabled a particles effect.
 * `switch <help|list|add|remove> [name] [ip] [onlyAdmin]` Configure the list of servers in the switch.
 * `tag <list|add|remove> [ID] [tagName...]` Configure the tag system.
-* `bans` List all banned IPs and IDs.
+* `bans <list|add|remove|reset> [ID|IP|y|n] [reason...]` List all banned IP/ID or ban/unban an ID/IP.
 * `alogs [on|off|reset] [y|n]` Configure admins logs.
 
 ### Feedback
