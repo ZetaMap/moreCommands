@@ -1,5 +1,5 @@
 /*
- * Total code lines (all files combined): 3 490 lines
+ * Total code lines (all files combined): 3 863 lines
  */
 
 import static mindustry.Vars.content;
