@@ -9,7 +9,6 @@ import arc.util.Timer;
 import arc.util.CommandHandler.CommandRunner;
 import arc.util.async.Threads;
 
-import mindustry.core.NetClient;
 import mindustry.game.EventType;
 import mindustry.gen.Call;
 import mindustry.gen.Groups;
@@ -17,6 +16,7 @@ import mindustry.gen.Player;
 import mindustry.net.Administration.ActionType;
 import mindustry.net.Packets.KickReason;
 
+import util.ALog;
 import util.Players;
 import util.Strings;
 import data.TempData;
@@ -26,7 +26,7 @@ import data.PVars;
 
 public class ContentRegister {
 	public static void initFilters() {
-		//filter for muted, rainbowed players and disabled chat
+		//filter for muted, rainbowed players, disabled chat, and tags
     	netServer.admins.addChatFilter((p, m) -> {
     		TempData data = TempData.get(p);
 
@@ -37,12 +37,15 @@ public class ContentRegister {
     			}
 				
     		} else if (!p.admin) {
-    			p.sendMessage("[scarlet]The tchat is disabled, you can't write!");
+    			p.sendMessage("[scarlet]The tchat is disabled, you can't speak!");
     			return null;
     		}
 
-    		Log.info("@[@]<@: @>", data.rainbowed ? "RAINBOWED: " : data.spectate() ? "VANISHED: " : "", data.stripedTag, data.realName, m);
-    		Call.sendMessage(Strings.format("[coral][[@[coral]]:[white] @", NetClient.colorizeName(p.id, p.name), m));	
+    		Log.info("@@<@: @>", data.rainbowed ? "RAINBOWED: " : data.spectate() ? "VANISHED: " : "", data.noColorTag, data.realName, m);
+    		if (data.spectate()) Call.sendMessage("[coral][[]:[white] " + m);
+    		else if (!PVars.tags || PVars.bubbleChat) Call.sendMessage(m, p.name, p);
+    		else Call.sendMessage(Strings.format("@[coral][[@[coral]]:[white] @", data.tag, p.name.substring(data.tag.length()), m));
+    		
     		return null;
     	});
     	
@@ -52,7 +55,6 @@ public class ContentRegister {
     			if (a.type == ActionType.placeBlock) Call.constructFinish(a.tile, a.block, a.unit, (byte) a.rotation, a.player.team(), a.config);
     			else if (a.type == ActionType.breakBlock) Call.deconstructFinish(a.tile, a.block, a.unit);
     		}
-    		
     		return true;
     	});
 	}
@@ -85,6 +87,7 @@ public class ContentRegister {
 	        	//check if player have a VPN
 	        	if (util.AntiVpn.checkIP(e.player.ip())) {
 	        		e.player.kick("[scarlet]Anti VPN is activated on this server! []Please deactivate your VPN to be able to connect to the server.");
+	        		ALog.write("VPN", "VPN found on the player @ [@]", name, e.player.uuid());
 	        		return;
 	        	}
 		        	
@@ -98,8 +101,7 @@ public class ContentRegister {
         	
         	//for me =)
         	if (data.isCreator) { 
-        		if (PVars.niceWelcome) 
-        			Call.sendMessage("[scarlet]\ue80f" + NetClient.colorizeName(e.player.id, e.player.name) + "[scarlet] has connected!\ue80f [lightgray](Everyone must say: Hello creator! XD)");
+        		if (PVars.niceWelcome) Call.sendMessage("[scarlet]\ue80f " + e.player.name + "[scarlet] has connected! \ue80f [lightgray](Everyone must say: Hello creator! XD)");
         		Call.infoMessage(e.player.con, "Welcome creator! =)");
         	}
         	
@@ -128,7 +130,7 @@ public class ContentRegister {
         		Log.info("auto-pause: Game paused...");
         	}
         	
-        	TempData.remove(e.player); //remove player in TempData
+        	e.player.name = TempData.remove(e.player).realName; //remove player in TempData
         });
         
         //fix /votekick bug 
@@ -142,6 +144,21 @@ public class ContentRegister {
         			arc.util.Timer.schedule(() -> target.data.rainbowed = true, 0.2f);
         		}
         	}
+        });
+        
+        Events.on(EventType.PlayerBanEvent.class, e -> ALog.write("Ban", "@ [@] has been banned of the server", netServer.admins.getInfoOptional(e.uuid).lastName, e.uuid));
+        
+        //save the unit of the player for the godmode
+        Events.on(EventType.UnitChangeEvent.class, e -> {
+	        TempData data = TempData.get(e.player);
+        	
+	        if (data != null) {
+		        if (data.inGodmode) {
+	        		data.lastUnit.health = data.lastUnit.maxHealth;
+	        		e.unit.health = Integer.MAX_VALUE;
+	        	}
+	        	data.lastUnit = e.unit;		
+	        }
         });
 	}
 	
@@ -170,11 +187,11 @@ public class ContentRegister {
 			this.handler.<Player>register(name, params, desc, (arg, player) -> {
 				if (forAdmin && !Players.adminCheck(player)) return;
 				
-				if (inThread) Threads.daemon("ClientCommandRunner_Player-" + player.id, () -> runner.accept(arg, TempData.get(player)));
+				if (inThread) Threads.daemon("ClientCommandRunner_" + player.toString(), () -> runner.accept(arg, TempData.get(player)));
 				else Timer.schedule(() -> {
 					try { runner.accept(arg, TempData.get(player)); } 
 					catch (Exception e) {
-						Log.err("Exception in Timer \"ClientCommandRunner_Player-@\"", player.id);
+						Log.err("Exception in Timer \"ClientCommandRunner_" + player.toString() + "\"");
 						e.printStackTrace();
 					}
 				}, 0);
@@ -188,7 +205,7 @@ public class ContentRegister {
 				Timer.schedule(() -> {
 					try { runner.get(arg); } 
 					catch (Exception e) {
-						Log.err("Exception in Timer \"ServerCommandRunner_Name-@\"", name);
+						Log.err("Exception in Timer \"ServerCommandRunner_Name-" + name + "\"");
 						e.printStackTrace();
 					}
 				 }, 0)

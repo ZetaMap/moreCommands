@@ -32,7 +32,7 @@ public class Players {
 	}
 	
 	public static boolean errFilterAction(String action, filter.FilterSearchReponse filter, boolean type) {
-		if (!filter.type.onlyPlayers()) {
+		if (!filter.type.onlyPlayers) {
 			if (type) err(filter.trigger, "@ is only for players!", action);
 			else err(filter.trigger, "Can @ only players!", action);
 			return true;
@@ -90,19 +90,29 @@ public class Players {
     }
     
     public static void tpPlayer(mindustry.gen.Unit unit, int x, int y) {
-		int limit = 50, range = 3*mindustry.Vars.tilesize;
-    	Player player = unit.getPlayer();
-    	
-    	while (!arc.math.Mathf.within(unit.x, unit.y, x, y, range) && limit-- > 0) {
-			unit.set(x, y);
-			if (player != null) {
-    			player.set(x, y);
-            	mindustry.gen.Call.setPosition(player.con, x, y);
-			}
-			arc.util.Log.info(limit);
-			try { Thread.sleep(100); }
-			catch (Exception e) {}
-    	}
+    	Thread tp = new Thread("UnitTeleport_Unit-" + unit.id) {
+    		int limit = 30;
+    		Player player = unit.getPlayer();
+    		
+    		@Override
+    		public void run() {
+		    	for (int i=0; i<10; i++) move();
+		    	while (!unit.within(x, y, 2*mindustry.Vars.tilesize) && limit-- > 0) move(); 		
+    		}
+    		
+    		public void move() {
+	    		unit.set(x, y);
+				if (player != null) {
+	    			player.set(x, y);
+	            	mindustry.gen.Call.setPosition(player.con, x, y);
+				}
+	
+				try { Thread.sleep(50); }
+				catch (Exception e) {}	
+    		}
+    	};
+    	tp.setDaemon(true);
+    	tp.start();
     }
     
     public static Team findTeam(String name) {

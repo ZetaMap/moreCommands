@@ -10,7 +10,8 @@ import mindustry.gen.Call;
 public class PVars {
 	public static ObjectMap<String, String> playerTags = new ObjectMap<>(),
 		bansReason = new ObjectMap<>();
-	public static String settingsPath = "moreCommands_settings/";
+	public static String settingsPath = "config/moreCommands_settings/",
+		ALogPath = "config/admin-logs/";
 	public static Seq<String> adminCommands = new Seq<>(),
 		recentMutes = new Seq<>();
     public static mindustry.maps.Map selectedMap;
@@ -20,7 +21,10 @@ public class PVars {
     	niceWelcome = true, 
     	unbanConfirm = false, 
     	clearConfirm = false, 
-    	canVote = true;
+    	canVote = true,
+    	alogConfirm = false,
+    	tags = true,
+    	bubbleChat = false;
     public static Task rtvSession = new Task() {
 		@Override
 		public void run() {

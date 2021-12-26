@@ -17,8 +17,9 @@ public class TempData {
 	public final MSG msgData = new MSG();
 	public mindustry.game.Team spectate = null;
 	public Effects effect = Effects.getByName("none");
+	public mindustry.gen.Unit lastUnit;
 	public final String realName, noColorName, stripedName;
-	public String tag = "", stripedTag = tag;
+	public String tag, noColorTag;
 	public int hue = 0;
 	public boolean votedVNW = false, 
 		votedRTV = false,
@@ -30,6 +31,7 @@ public class TempData {
 	
 	private TempData(Player p){
 		this.player = p;
+		this.lastUnit = p.unit();
         this.realName = p.name;
         this.noColorName = Strings.stripColors(p.name).strip();
         this.stripedName = Strings.stripGlyphs(this.noColorName).strip();
@@ -41,22 +43,21 @@ public class TempData {
 	}
 	
 	public void resetName() {
-		this.player.name = this.tag + this.realName;
+		this.player.name = this.tag + mindustry.core.NetClient.colorizeName(this.player.id, this.realName);
 	}
 	
 	public void applyTag() {
-		if (PVars.playerTags.containsKey(this.player.uuid())) {
-			this.tag = "[white]" + PVars.playerTags.get(this.player.uuid());
-			this.stripedTag =  Strings.stripGlyphs(Strings.stripColors(this.tag)).strip();
-			this.tag += "[coral]: ";
+		if (PVars.tags && PVars.playerTags.containsKey(this.player.uuid())) {
+			this.tag = "[gold][[[white]" + PVars.playerTags.get(this.player.uuid()) + "[gold]] ";
+			this.noColorTag = Strings.stripColors(this.tag).strip();
 		
-		} else if (this.player.admin) {
-			this.tag = "[scarlet]<Admin>[coral]: ";
-			this.stripedTag = "<Admin>";
+		} else if (PVars.tags && this.player.admin) {
+			this.tag = "[gold][[[scarlet]<Admin>[gold]] ";
+			this.noColorTag = "[<Admin>] ";
 		
 		} else {
 			this.tag = "";
-			this.stripedTag = this.tag;
+			this.noColorTag = this.tag;
 		}
 	}
 
@@ -70,7 +71,7 @@ public class TempData {
 		this.spectate = newData.spectate;
 		this.effect = newData.effect;
 		this.tag = newData.tag;
-		this.stripedTag = newData.stripedTag;
+		this.noColorTag = newData.noColorTag;
 		this.hue = newData.hue;
 		this.votedVNW = newData.votedVNW;
 		this.votedRTV = newData.votedRTV;
@@ -79,6 +80,9 @@ public class TempData {
 		this.isMuted = newData.isMuted;
 		this.inGodmode = newData.inGodmode;
 		this.isCreator = newData.isCreator;
+		
+		this.applyTag();
+		this.resetName();
 	}
 	
 	public String toString() {
@@ -87,7 +91,7 @@ public class TempData {
     		+ ", spectate: " + this.spectate + ", effect: " + this.effect 
     		+ ", realName: " + this.realName + ", noColorName: " + this.noColorName 
     		+ ", stripedName: " + this.stripedName + ", tag: " + this.tag
-    		+ ", stripedTag:" + this.stripedTag + ", hue: " + this.hue
+    		+ ", noColorTag:" + this.noColorTag + ", hue: " + this.hue
     		+ ", votedVNW: " + this.votedVNW + ", votedRTV: " + this.votedRTV
     		+ ", rainbowed: " + this.rainbowed + ", hasEffect: " + this.hasEffect
     		+ ", isMuted: " + this.isMuted + ", inGodmode: " + this.inGodmode
@@ -121,12 +125,13 @@ public class TempData {
     	return data_;
     }
     
-    public static void remove(Player p) {
+    public static TempData remove(Player p) {
     	TempData data_ = get(p);
     	
     	data_.msgData.removeTarget();
     	data.remove(p);
     	ordonedData.remove(data_);
+    	return data_;
     }
 
     public static boolean contains(Player p) {

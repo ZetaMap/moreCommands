@@ -1,18 +1,150 @@
 package manager;
 
+import static mindustry.Vars.netServer;
+
 import arc.Core;
 import arc.struct.Seq;
 import arc.util.Log;
-
+import data.PVars;
+import data.TempData;
+import util.ALog;
 import util.AntiVpn;
 import util.Strings;
 import filter.FilterType;
+import mindustry.core.NetClient;
+import mindustry.gen.Call;
+import mindustry.net.Administration.PlayerInfo;
+import mindustry.net.Packets.KickReason;
 
 
 public class BansManager {
 	private static Seq<String> bannedClients = new Seq<String>().addAll("VALVE", "tuttop", "CODEX", "IGGGAMES", "IgruhaOrg", "FreeTP.Org"),
 	    bannedIps = new Seq<>(),
 	    bannedNames = new Seq<>();
+	
+	public static void bansCommand(String[] arg) {
+		if (PVars.unbanConfirm && !arg[0].equals("reset")) {
+			Log.info("Confirmation canceled ...");	
+			PVars.unbanConfirm = false;		
+			return;
+		}
+		
+        switch (arg[0]) {
+        	case "list":
+	            Seq<PlayerInfo> bans = netServer.admins.getBanned();
+	            Seq<String> ipbans = netServer.admins.getBannedIPs();
+	
+	            if (bans.isEmpty()) Log.info("No ID-banned players have been found.");
+	            else {
+	                Log.info("Banned players [ID]:");
+	                bans.each(info -> Log.info("| @ - Last name: '@' - Reason: @", info.id, info.lastName, PVars.bansReason.get(info.id, "<unknown>")));
+	            }
+	            
+	            if (ipbans.isEmpty()) Log.info("No IP-banned players have been found.");
+	            else {
+	                Log.info("Banned players [IP]:");
+	                ipbans.each(ip -> {
+	                	Seq<PlayerInfo> infos = netServer.admins.findByIPs(ip);
+	                	
+	                	if (infos.isEmpty()) Log.info("| + '@' (No name or info)", ip);
+	                	else {
+	                		Log.info("| + '@'", ip);
+	                		infos.each(info -> Log.info("| | Last name: '@' - ID: '@' - Reason: @", info.lastName, info.id, PVars.bansReason.get(info.id, "<unknown>")));
+	                	}
+	                });
+	            }		
+        		break;
+        		
+        	case "ban":
+        		if (arg.length > 2) {
+            		if (arg[1].equals("id")) {
+            			netServer.admins.banPlayerID(arg[2]);
+            			if (arg.length == 4) PVars.bansReason.put(arg[2], arg[3]);
+            			Log.info("ID banned for the reason: @", arg.length == 4 ? arg[3] : "<unknown>");
+            			ALog.write("Ban", "[Server] banned the id '@' for the reason: @", arg[2], arg.length == 4 ? arg[3] : "<unknown>");
+            			
+            		} else if (arg[1].equals("ip")) {
+            			netServer.admins.banPlayerIP(arg[2]);
+            			if (arg.length == 4) netServer.admins.findByIPs(arg[2]).each(info -> PVars.bansReason.put(info.id, arg[3]));
+            			Log.info("IP banned for the reason: @", arg.length == 4 ? arg[3] : "<unknown>");
+            			ALog.write("Ban", "[Server] banned the ip '@' for the reason: @", arg[2], arg.length == 4 ? arg[3] : "<unknown>");
+            			
+            		} else {
+            			Log.err("Invalid type.");
+            			return;
+            		}
+            		
+            		saveSettings();
+            		TempData.copy().each(d -> {
+            			if(netServer.admins.isIDBanned(d.player.uuid())) {
+            				Call.sendMessage("\n[gold]--------------------\n[scarlet]/!\\ " + NetClient.colorizeName(d.player.id, d.realName) 
+            					+ "[scarlet] has been banned of the server.\nReason: [white]" + (arg[3].isBlank() ? "<unknown>" : arg[3]) + "\n[gold]--------------------\n");
+    		        		ALog.write("Ban", "[Server] banned @ [@] for the reason: @", d.stripedName, d.player.uuid(), arg[3].isBlank() ? "<unknown>" : arg[3]);
+    		        		if (arg[3].isBlank()) d.player.kick(KickReason.banned);
+    		                else d.player.kick("You are banned on this server!\n[scarlet]Reason: []" + arg[3]);
+            			}
+            		});	
+        		
+        		} else Log.err("Please specify a type and value! Example: bans ban id abcdefghijkAAAAA012345==");
+        		break;
+        		  
+        	case "unban":
+        		if (arg.length > 2) {
+            		if (netServer.admins.unbanPlayerID(arg[2])) {
+            			PlayerInfo info = netServer.admins.getInfoOptional(arg[2]);
+            			
+                        Log.info("Unbanned player @ [@]", info.lastName, info.id);
+                        ALog.write("Unban", "[Server] unbanned @ [@]", info.lastName, info.id);
+                        PVars.bansReason.remove(info.id);
+                    
+            		} else if (netServer.admins.unbanPlayerIP(arg[2])) {
+            			netServer.admins.findByIPs(arg[2]).each(info -> PVars.bansReason.remove(info.id));
+            			Log.info("IP unbanned");
+            			ALog.write("Unban", "[Server] unbanned the ip @", arg[2]);
+            		
+            		} else {
+            			Log.err("That IP/ID is not banned!");
+            			return;
+            		}
+            		saveSettings();
+        		
+        		} else Log.err("Please specify a type and value! Example: bans unban ip 0.0.0.0");
+        		break;
+        		
+        	case "reset":
+	            if (arg.length > 1 && !PVars.unbanConfirm) {
+	    			Log.err("Use first: 'bans reset', before confirming the command.");
+	    			return;
+	    		} else if (!PVars.unbanConfirm) {
+	    			Log.warn("Are you sure to unban all all IP and ID? (bans reset <y|n>)");
+	    			PVars.unbanConfirm = true;
+	    			return;
+	    		} else if (arg.length == 1 && PVars.unbanConfirm) {
+	    			Log.warn("Are you sure to unban all all IP and ID? (bans reset <y|n>)");
+	    			PVars.unbanConfirm = true;
+	    			return;
+	    		}
+	
+	    		switch (arg[1]) {
+	    			case "y": case "yes":
+	    				netServer.admins.getBanned().each(unban -> {
+	    					netServer.admins.unbanPlayerID(unban.id);
+	    					PVars.bansReason.remove(unban.id);
+	    				});
+	    				netServer.admins.getBannedIPs().each(ip -> netServer.admins.unbanPlayerIP(ip));
+	    				Log.info("All IP and ID have been unbanned!");
+	    				ALog.write("Unban", "ALL IP AND ID HAVE BEEN UNBANNED!");
+	    				saveSettings();
+	    				break;
+	    				
+	    			default: Log.info("Confirmation canceled ...");	
+	    		}
+	    		PVars.unbanConfirm = false;		
+        		break;
+        		
+        	default: Log.err("Invalid arguments.");
+        }
+	}
 	
 	public static void blacklistCommand(String[] arg) {
 		Seq<String> list = new Seq<String>().addAll("[server]", "~").addAll(bannedClients);
@@ -131,15 +263,20 @@ public class BansManager {
 	
 	public static boolean checkName(mindustry.gen.Player player, String name) {
 		boolean kicked = true;
+		String message = "";
 		
-    	if (name.startsWith(FilterType.prefix)) player.kick("[scarlet]Your nickname must not start with [orange]'" + FilterType.prefix + "'");
-    	else if (name.length() < 2) player.kick("[scarlet]Your nickname must be at least 2 characters long");
-    	else if (bannedNames.contains(name) || name.toLowerCase().equals("[server]") 
-    		|| name.toLowerCase().equals("server") || name.equals("~")
-    			) player.kick("[scarlet]This nickname is banned!");
-    	else if (bannedClients.contains(name)) player.con.kick("Ingenuine copy of Mindustry.\n\nMindustry is free on: [royal]https://anuke.itch.io/mindustry[]\n");
-    	else if (bannedIps.contains(player.con.address)) player.kick("[scarlet]Your IP is blacklisted. [lightgray](ip: " + player.ip() +")");
+    	if (name.startsWith(FilterType.prefix)) message = "[scarlet]Your nickname must not start with [orange]'" + FilterType.prefix + "'";
+    	else if (name.length() < 2) message = "[scarlet]Your nickname must be at least 2 characters long";
+    	else if (bannedNames.contains(name) || name.toLowerCase().equals("[server]") || name.toLowerCase().equals("server") || name.equals("~")) 
+    		message = "[scarlet]This nickname is banned!";
+    	else if (bannedClients.contains(name)) message = "Ingenuine copy of Mindustry.\n\nMindustry is free on: [royal]https://anuke.itch.io/mindustry[]\n";
+    	else if (bannedIps.contains(player.con.address)) message = "[scarlet]Your IP is blacklisted. [lightgray](ip: " + player.ip() +")";
     	else kicked = false;
+    	
+    	if (kicked) {
+    		player.kick(message);
+    		util.ALog.write("Check", "The connection of @ [@] was refused for the reason: @", player.name, player.uuid(), message);
+    	}
     	
     	return kicked;
     }

@@ -1,7 +1,6 @@
 package filter;
 
 import arc.Core;
-import arc.struct.ObjectMap;
 
 import mindustry.gen.Player;
 import mindustry.gen.Unit;
@@ -11,8 +10,6 @@ import filter.FilterType.*;
 
 
 public class ArgsFilter {
-	@SuppressWarnings("unused")
-	private static ObjectMap<Arguments, Object> defaultArguments = new ObjectMap<>();
 	public static String[] filters = new arc.struct.Seq<FilterType>().addAll(FilterType.values()).map(f -> f.getValue()).toArray(String.class);
 	public static boolean enabled = true;
 	
@@ -21,8 +18,7 @@ public class ArgsFilter {
 	public final TempData data;
 	public Unit unit;
 
-	protected ArgsFilter(FilterType type, Player player) { this(type, player, player.unit()); }
-	protected ArgsFilter(FilterType type, Player player, Unit unit) {
+	public ArgsFilter(FilterType type, Player player, Unit unit) {
 		this.type = type;
 		this.data = TempData.get(player);
 		this.player = player;
