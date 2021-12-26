@@ -106,7 +106,7 @@ public class ContentRegister {
         	}
         	
         	//unpause the game if one player is connected
-        	if (PVars.autoPause && Groups.player.size() > 0) {
+        	if (PVars.autoPause && Groups.player.size() == 1) {
         		state.serverPaused = false;
         		Log.info("auto-pause: Game unpaused...");
         		Call.sendMessage("[scarlet][Server]:[] Game unpaused...");
