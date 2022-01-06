@@ -69,3 +69,5 @@ Shadow53 - [MindustryAdminPlugin](https://github.com/Shadow53/MindustryAdminPlug
 mayli - [RockTheVotePlugin](https://github.com/mayli/RockTheVotePlugin)<br>
 OceanPandorum - [PandorumPlugin](https://github.com/OceanPandorum/PandorumPlugin)<br>
 Mindurka - [spawnUnit](https://github.com/Mindurka/spawnUnit)
+
+![Visitor Badge](https://visitor-badge.laobi.icu/badge?page_id=ZetaMap.moreCommands)
