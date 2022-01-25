@@ -1,3 +1,4 @@
+![Visitor Badge](https://visitor-badge.laobi.icu/badge?page_id=ZetaMap.moreCommands) ![Download](https://shields.io/github/downloads/ZetaMap/moreCommands/total)
 # moreCommands Plugin
 **/!\\This plugin need java 12 or greater./!\\** To dowload java 12, follow steps [here](https://www.oracle.com/fr/java/technologies/javase/jdk12-archive-downloads.html) or greater version [here](https://www.oracle.com/java/technologies/downloads/).
 
@@ -69,6 +70,3 @@ Shadow53 - [MindustryAdminPlugin](https://github.com/Shadow53/MindustryAdminPlug
 mayli - [RockTheVotePlugin](https://github.com/mayli/RockTheVotePlugin)<br>
 OceanPandorum - [PandorumPlugin](https://github.com/OceanPandorum/PandorumPlugin)<br>
 Mindurka - [spawnUnit](https://github.com/Mindurka/spawnUnit)
-
-#### I watching you ...
-![Visitor Badge](https://visitor-badge.laobi.icu/badge?page_id=ZetaMap.moreCommands)
