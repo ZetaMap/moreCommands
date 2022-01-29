@@ -32,6 +32,7 @@
 * `/mute <filter|username|ID> [reason...]` Mute a person by name or ID.
 * `/unmute <filter|username|ID...>` Unmute a person by name or ID.
 * `/reset <filter|username|ID...>` Resets a player's game data (rainbow, GodMode, muted, ...).
+- [ ] `/freeze <filter|username|ID...>` Freeze a player.
 
 ### Server Commands
 * `auto-pause` Pause the game if no one is connected.
