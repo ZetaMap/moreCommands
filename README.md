@@ -51,6 +51,7 @@
 * `alogs [on|off|reset] [y|n]` Configure admins logs.
 - [ ] `warn [ID] [message...]` Display a pop-up message to warn the player.
 - [ ] `reset [ID]` Reset all data of the player (ips, names, ban, ...).
+- [ ] `fillitems [team] [item]` Fill the core with the selected item.
 
 ### Feedback
 Open an issue if you have a suggestion.
