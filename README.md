@@ -15,6 +15,7 @@
 * `/r <message...>` Reply to the last private message received.
 * `/lobby` Switch to lobby server.
 * `/switch <list|name...>` Switch to another server.
+- [ ] `/report <player> [reason...]` Report a player to staff.
 
 ### Admin Commands
 * `/team [~|teamname|list|vanish] [filter|username...]` Change team.
@@ -33,6 +34,7 @@
 * `/unmute <filter|username|ID...>` Unmute a person by name or ID.
 * `/reset <filter|username|ID...>` Resets a player's game data (rainbow, GodMode, muted, ...).
 - [ ] `/freeze <filter|username|ID...>` Freeze a player.
+- [ ] `/reports <list|ok> [id]` Control the reports list
 
 ### Server Commands
 * `auto-pause` Pause the game if no one is connected.
@@ -52,6 +54,7 @@
 - [ ] `warn [ID] [message...]` Display a pop-up message to warn the player.
 - [ ] `reset [ID]` Reset all data of the player (ips, names, ban, ...).
 - [ ] `fillitems [team] [item]` Fill the core with the selected item.
+- [ ] `reports <list|ok|clear> [id]` Control the reports list.
 
 ### Feedback
 Open an issue if you have a suggestion.
