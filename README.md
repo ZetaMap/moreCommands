@@ -54,7 +54,7 @@
 - [ ] `warn [ID] [message...]` Display a pop-up message to warn the player.
 - [ ] `reset [ID]` Reset all data of the player (ips, names, ban, ...).
 - [ ] `fillitems [team] [item]` Fill the core with the selected item.
-- [ ] `reports <list|ok|clear> [id]` Control the reports list.
+- [ ] `reports <list|ok|clear> [id]` Control the reports list
 
 ### Feedback
 Open an issue if you have a suggestion.
