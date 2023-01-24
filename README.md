@@ -49,7 +49,7 @@
 * `effect <list|on|off> [id|name]` Enabled/disabled a particles effect.
 * `switch <help|list|add|remove> [name] [ip] [onlyAdmin]` Configure the list of servers in the switch.
 * `tag <help|arg0> [ID|on|off] [tagName...]` Configure the tag system.
-* `bans <list|ban|unban|reset> [type-id|ip] [ID|IP] [reason...]` List all banned IP/ID or ban/unban an ID/IP.
+* `bans <list|add|remove|reset> [type-id|ip] [ID|IP] [reason...]` List all banned IP/ID or ban/unban an ID/IP.
 * `alogs [on|off|reset] [y|n]` Configure admins logs.
 - [ ] `warn [ID] [message...]` Display a pop-up message to warn the player.
 - [ ] `reset [ID]` Reset all data of the player (ips, names, ban, ...).
