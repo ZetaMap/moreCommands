@@ -52,7 +52,7 @@
 * `bans <list|add|remove|reset> [type-id|ip] [ID|IP] [reason...]` List all banned IP/ID or ban/unban an ID/IP.
 * `alogs [on|off|reset] [y|n]` Configure admins logs.
 * `reset [ID]` Reset all data of the player (ips, names, ban, ...).
-* `fillitems [team] [item]` Fill the core with the selected item.
+* `fillitems [team|all] [item]` Fill the core with the selected item.
 - [ ] `warn [ID] [message...]` Display a pop-up message to warn the player.
 - [ ] `reports <list|ok|clear> [id]` Control the reports list
 
