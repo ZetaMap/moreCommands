@@ -80,8 +80,8 @@ public class BansManager {
                   + "[scarlet] has been banned of the server.\nReason: [white]" + PVars.bansReason.get(arg[2])
                   + "\n[gold]--------------------\n");
               ALog.write("Ban", "[Server] banned @ [@] for the reason: @", d.stripedName, d.player.uuid(), PVars.bansReason.get(arg[2]));
-              if (arg[3].isBlank()) d.player.kick(KickReason.banned);
-              else d.player.kick("You are banned on this server!\n[scarlet]Reason: []" + arg[3]);
+              if (arg.length == 3 || arg[3].isBlank()) d.player.kick(KickReason.banned);
+              else d.player.kick("You are banned on this server!\n[scarlet]Reason: []" + PVars.bansReason.get(arg[2]));
             }
           });
 
@@ -161,7 +161,7 @@ public class BansManager {
           Log.info(Strings.lJust("| Custom list: Total: " + bannedNames.size, max) + "  Default list: Total: " + list.size);
           for (int i = 0; i < Math.max(bannedNames.size, list.size); i++) {
             try { builder.append(Strings.lJust("| | " + bannedNames.get(i), max + 1)); } 
-            catch (IndexOutOfBoundsException e) { builder.append("|" + Strings.createSpaces(max)); }
+            catch (IndexOutOfBoundsException e) { builder.append("|" + Strings.repeat(" ", max)); }
             try { builder.append(" | " + list.get(i)); } 
             catch (IndexOutOfBoundsException e) {}
 
@@ -178,7 +178,7 @@ public class BansManager {
           for (int i = 0; i < Math.max(bannedIps.size, AntiVpn.vpnServersList.size()); i++) {
             try { builder.append(Strings.lJust("| | " + bannedIps.get(i), max + 1)); } 
             catch (IndexOutOfBoundsException e) {
-              builder.append("|" + Strings.createSpaces(max));
+              builder.append("|" + Strings.repeat(" ", max));
               if (i > 20) break;
             }
             try {
@@ -273,8 +273,11 @@ public class BansManager {
         name.toLowerCase().equals("server"))
       message = "[scarlet]This nickname is banned!";
     else if (!player.admin &&
-        netServer.admins.getAdmins().contains(p -> Strings.stripGlyphs(Strings.stripColors(p.lastName)).strip().equals(name)))
-      message = "[scarlet]Spoofing an admin name is prohibited!";
+        netServer.admins.getAdmins().contains(p -> {
+          String adminName = Strings.stripGlyphs(Strings.stripColors(p.lastName)).strip().toLowerCase();
+          return adminName.contains(name.toLowerCase()) || name.toLowerCase().contains(adminName);
+        }))
+      message = "[scarlet]Spoofing an admin name is prohibited! [lightgray](even if not entirely)";
     else if (bannedClients.contains(name)) message = "Ingenuine copy of Mindustry.\n\nMindustry is free on: [royal]https://anuke.itch.io/mindustry[]\n";
     else if (bannedIps.contains(player.con.address)) message = "[scarlet]Your IP is blacklisted. [lightgray](ip: " + player.ip() + ")";
     else kicked = false;

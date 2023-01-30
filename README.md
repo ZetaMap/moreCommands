@@ -1,7 +1,7 @@
 ![Visitor Badge](https://visitor-badge.laobi.icu/badge?page_id=ZetaMap.moreCommands) ![Download](https://shields.io/github/downloads/ZetaMap/moreCommands/total) ![GitHub Clones](https://img.shields.io/badge/dynamic/json?color=success&label=Clones&query=count&url=https://gist.githubusercontent.com/ZetaMap/e8cbd0ed420987f8c25b6945fd80e3b0/raw/clone.json&logo=github)
 # moreCommands Plugin
 **/!\\This plugin need java 12 or greater./!\\** To download java 12, follow steps [here](https://www.oracle.com/fr/java/technologies/javase/jdk12-archive-downloads.html) or greater version [here](https://www.oracle.com/java/technologies/downloads/).
- 
+
 ### Player Commands
 * `/ut [filter|username...]` The name of the unit.
 * `/vnw [number]` Vote for sending a New Wave.
@@ -51,10 +51,10 @@
 * `tag <help|arg0> [ID|] [tagName...]` Configure the tag system.
 * `ban <list|add|remove|reset> [type-id|ip] [ID|IP] [reason...]` List all banned IP/ID or ban/unban an ID/IP.
 * `alogs [on|off|reset] [y|n]` Configure admins logs.
-* `reset [ID]` Reset all data of the player (ips, names, ban, ...).
 * `fillitems [team|all] [items...]` Fill the core with the selected item.
 - [ ] `warn [ID] [message...]` Display a pop-up message to warn the player.
 - [ ] `reports <list|ok|clear> [id]` Control the reports list
+- [ ] `reset [ID]` Reset all data of the player (ips, names, ban, ...).
 
 ### Feedback
 Open an issue if you have a suggestion.

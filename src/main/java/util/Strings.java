@@ -26,10 +26,10 @@ public class Strings extends arc.util.Strings {
 		return left + right;
 	}
 	
-	public static String createSpaces(int length) {
-    	String spaces = "";
-    	for (int i=0; i<length; i++) spaces+=" ";
-    	return spaces;
+	public static String repeat(String str, int count) {
+    	String result = "";
+    	for (int i=0; i<count; i++) result+=str;
+    	return result;
     }
 	
 	public static int bestLength(Iterable<? extends String> list) {

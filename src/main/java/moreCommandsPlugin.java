@@ -122,10 +122,19 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         Log.info("Items of all teams:");
         teams.each(t -> {
           mindustry.world.modules.ItemModule coreItems = t.cores().first().items;
-          int count = items.count(i -> coreItems.has(i));
+          Seq<String> teamItems = items.select(i -> coreItems.has(i)).map(i -> i.name + "=" + coreItems.get(i) + ", ");
+          String builder = "| | ";
+          int best = Strings.bestLength(teamItems);
 
           Log.info("| Team @: Total: @ items ", t.name, coreItems.total());
-          Log.info("| | ");
+          for (int i=0; i<teamItems.size; i++) {
+            builder += teamItems.get(i);
+            if (i%3 == 0 && i != 0) {
+              Log.info(builder);
+              builder = "| | ";
+            }else builder += Strings.repeat("\t", (int)(teamItems.get(i).length()/10));
+          }
+          Log.info(builder);
         });
         return;
       }
@@ -231,7 +240,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         Log.info(Strings.lJust("| Server commands: Total:" + server.size, 28 + best2) + "Client commands: Total:" + client.size);
         for (int i=0; i<Math.max(client.size, server.size); i++) {
           try { builder.append(Strings.mJust("| | Name: " + server.get(i).name," - Enabled: " + (server.get(i).isActivate ? "true " : "false"), 27 + best2)); } 
-          catch (IndexOutOfBoundsException e) { builder.append("|" + Strings.createSpaces(best1 + 20)); }
+          catch (IndexOutOfBoundsException e) { builder.append("|" + Strings.repeat(" ", best1 + 20)); }
           try { builder.append(Strings.lJust(" | Name: " + client.get(i).name, 9 + best1) + " - Enabled: " + client.get(i).isActivate);}
           catch (IndexOutOfBoundsException e) {}
 
@@ -679,7 +688,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
       } else {
         Log.info("Admin Logs Help:");
         Log.info("| Admin logs is @ ...", ALog.isEnabled ? "enabled" : "disabled");
-        Log.info("| @ files created since the last reset.", ALog.files);
+        Log.info("| @ files created since the last reset.", ALog.files+1);
         Log.info("| Logs path: @", PVars.ALogPath);
         Log.info("");
         Log.info("Logs files:");
@@ -692,21 +701,23 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         } else Log.err("| Files directory not found.");
       }
     });
-
+    /*
     commands.add("reset", "<ID>", "Reset all player's data (names, ips, ...)", arg -> {
       PlayerInfo target = netServer.admins.getInfoOptional(arg[0]);
 
       if (target == null) Log.err("no player found with id '@'", arg[0]);
       else {
         Players player = Players.findByID(arg[0]);
-        if (player.found) player.player.kick("Player data reset.");
+        if (player.found) player.player.kick("Player data reseted.");
 
         target = new PlayerInfo();
         target.id = arg[0];
+        
 
         Log.info("player data reseted");
       }
     });
+    */
   }
 
   // register commands that player can invoke in-game

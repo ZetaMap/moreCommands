@@ -68,6 +68,10 @@ public class Switcher {
     else {
       Host ping = ping();
       
+      if (ping != null) {
+         arc.util.Log.info("@ @ @ @ @ @", ping.address, ping.description, ping.mapname, ping.modeName, ping.versionType, ping.ping);
+      }
+     
       if (ping == null) reponse.failed("The server not responding. (Connexion timed out!)");
       else if (ping.playerLimit > 0 && ping.players >= ping.playerLimit) reponse.failed("Server full. (" + ping.players + "/" + ping.playerLimit + ")");
       else if (ping.version != mindustry.core.Version.build) reponse.failed("Incompatible version. Required: " + ping.version);
