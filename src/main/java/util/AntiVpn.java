@@ -3,14 +3,15 @@ package util;
 import java.util.ArrayList;
 
 import arc.Core;
+import arc.util.Http;
 import arc.util.Log;
 import arc.util.serialization.Jval;
 
 
 public class AntiVpn {
 	public static ArrayList<String> vpnServersList = new ArrayList<>();
-	public static int timesLeft = 10, timesLimit = timesLeft;
 	public static boolean isEnabled = false, vpnFileFound = true, fullLoaded = false;
+	public static String apiToken = "";
 	
 	private boolean foundVpn = false;
 
@@ -19,33 +20,27 @@ public class AntiVpn {
 	
 	
 	public static boolean checkIP(String ip) {
+	    if (ip == null) throw new IllegalArgumentException("ip can't be null");
+	  
 		AntiVpn test = new AntiVpn();
 		
 		if (isEnabled) 
-			Core.net.httpGet("https://vpnapi.io/api/" + ip, s -> {
+			Http.get("https://vpnapi.io/api/" + ip + (apiToken.isBlank() ? "" : "?key=" + apiToken), s -> {
 				Jval content = Jval.read(s.getResultAsString());
 				
-				if (content.get("security") != null) test.foundVpn = content.get("security").asArray().get(0).asBool();
-				timesLeft = timesLimit;
+				if (!content.has("security")) throw new Exception(content.getString("message"));
+				test.foundVpn = content.get("security").get("vpn").asBool();
 				
 			}, f -> {
-				Log.err("Anti VPN: An error occurred while finding or processing the player's IP address."
-					+ "\nError: " + f.getMessage());
+				Log.warn("Anti VPN: An error occurred while checking the player's IP");
+				Log.warn("Error: " + (f.getLocalizedMessage().contains("error: 429") ? 
+				    "Daily limit reached. Please enter an API key." : f.getLocalizedMessage()));
 				
 				if (vpnFileFound) {
-					Log.info("The search will be done by the reference file (less reliable).");
+					Log.debug("The search will be done by the reference file (less reliable).");
 					test.foundVpn = vpnServersList.contains(ip);
-					timesLeft = timesLimit;
 				
-				} else {
-					Log.err("The reference file was not loaded. The player's IP will therefore not be verified.");
-					
-					if (timesLeft++ == timesLimit) {
-						Log.warn("The unsuccessful search limit has been reached. Anti VPN will be deactivated...");
-						isEnabled = false;
-					
-					} else Log.warn("If this happens another '@' times, the anti VPN will be disabled!", timesLimit-timesLeft);
-				}	
+				} else Log.debug("The reference file was not loaded. The player's IP will therefore not be verified.");
 			});
 
 		return test.foundVpn;
@@ -53,15 +48,15 @@ public class AntiVpn {
 
 	public static void init() { init(false); }
 	public static void init(boolean loadSettings) {
-		if (loadSettings && Core.settings.has("AntiVpn")) {
-			try {
-				String[] temp = Core.settings.getString("AntiVpn").split(" \\| ");
-				isEnabled = Boolean.parseBoolean(temp[0]);
-				timesLimit = Integer.parseInt(temp[1]);
-				
-			} catch (Exception e) { saveSettings(); }
-		}
+	  if (loadSettings) {
+		if (Core.settings.has("anti-vpn")) isEnabled = Core.settings.getBool("anti-vpn");
+		else Core.settings.put("anti-vpn", isEnabled);
 		
+		if (Core.settings.has("anti-vpn-token")) apiToken = Core.settings.getString("anti-vpn-token");
+		else Core.settings.put("anti-vpn-token", apiToken);
+			    
+	  }
+
 		if (isEnabled) {
 			arc.files.Fi file = Core.files.local("config/ip-vpn-list.txt");
 			
@@ -70,7 +65,7 @@ public class AntiVpn {
 	    			Log.info("Loading anti VPN file...");
 	    			
 	    			for (Object line : file.readString().lines().toArray()) vpnServersList.add((String) line);
-	    			if (vpnServersList.get(0).equals("### Vpn servers list ###")) {
+	    			if (vpnServersList.get(0).startsWith("-")) {
 	    				vpnServersList.remove(0);
 	    				
 	    				fullLoaded = true;
@@ -89,10 +84,12 @@ public class AntiVpn {
 	    		catch (java.io.IOException e) {}
 	    	}
 	    	
-			Core.net.httpGet("https://raw.githubusercontent.com/ZetaMap/moreCommands/main/ip-vpn-list.txt", s -> {
+	    	Http.get("https://raw.githubusercontent.com/ZetaMap/moreCommands/main/ip-vpn-list.txt", s -> {
 				file.writeBytes(s.getResult());
-				Object[] list = file.readString().lines().toArray();
-				for (Object line : list) vpnServersList.add((String) line);
+
+				vpnServersList.clear();
+				for (Object line : file.readString().lines().toArray()) vpnServersList.add((String) line);
+				vpnServersList.remove(0);
 				
 				Log.info("File upload successful!");
 				fullLoaded = true;
@@ -104,6 +101,7 @@ public class AntiVpn {
     }
 	
 	public static void saveSettings() {
-		Core.settings.put("AntiVpn", isEnabled + " | " + timesLimit);
+		Core.settings.put("anti-vpn", isEnabled);
+		Core.settings.put("anti-vpn-token", apiToken);
 	}
 }

@@ -42,14 +42,17 @@ public class Strings extends arc.util.Strings {
     	return best;
     }
 	
+	public static String hueToColor(int hue) {
+		return Integer.toHexString(java.awt.Color.getHSBColor(hue / 360f, 1f, 1f).getRGB()).substring(2);
+	}
+	
 	public static String RGBString(String str, int hue) {
     	String out = "";
     	
     	for (char c : str.toCharArray()) {
     		if (hue < 360) hue+=10;
     		else hue = 0;
-    		
-    		out += (c == '[' ? "[[#" : "[#") + Integer.toHexString(java.awt.Color.getHSBColor(hue / 360f, 1f, 1f).getRGB()).substring(2) + "]" + c;
+    		out += "[#" + hueToColor(hue) + (c == '[' ? "][" : "]") + c;
     	}
     	
         return out;
