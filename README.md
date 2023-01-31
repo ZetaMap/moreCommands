@@ -44,17 +44,17 @@
 * `clear-map [y|n]` Kill all units and destroy all blocks except cores, on the current map.
 * `gamemode [name]` Change the gamemode of the current map.
 * `blacklist <list|add|remove|clear> <name|ip> [value...]` Players using a nickname or ip in the blacklist cannot connect.
-* `anti-vpn [on|off|limit] [number]` Anti VPN service.
+* `anti-vpn [on|off|token] [your_token]` Anti VPN service.
 * `filters <help|on|off>` Enabled/disabled filters.
 * `effect <list|on|off> [id|name]` Enabled/disabled a particles effect.
-* `switch <help|list|add|remove> [name] [ip] [onlyAdmin]` Configure the list of servers in the switch.
-* `tag <help|arg0> [ID|on|off] [tagName...]` Configure the tag system.
-* `bans <list|add|remove|reset> [type-id|ip] [ID|IP] [reason...]` List all banned IP/ID or ban/unban an ID/IP.
+* `switch <help|list|add|remove|clear> [name] [ip] [onlyAdmin]` Configure the list of servers in the switch.
+* `tag <help|arg0> [ID|] [tagName...]` Configure the tag system.
+* `ban <list|add|remove|reset> [type-id|ip] [ID|IP] [reason...]` List all banned IP/ID or ban/unban an ID/IP.
 * `alogs [on|off|reset] [y|n]` Configure admins logs.
-* `reset [ID]` Reset all data of the player (ips, names, ban, ...).
-* `fillitems [team|all] [items...]` Fill the core with the selected items.
+* `fillitems [team|all] [items...]` Fill the core with the selected item.
 - [ ] `warn [ID] [message...]` Display a pop-up message to warn the player.
 - [ ] `reports <list|ok|clear> [id]` Control the reports list
+- [ ] `reset [ID]` Reset all data of the player (ips, names, ban, ...).
 
 ### Feedback
 Open an issue if you have a suggestion.

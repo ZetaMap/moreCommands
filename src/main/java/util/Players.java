@@ -2,7 +2,6 @@ package util;
 
 import mindustry.game.Team;
 import mindustry.gen.Player;
-
 import data.TempData;
 
 
@@ -116,14 +115,10 @@ public class Players {
     }
     
     public static Team findTeam(String name) {
-    	switch (name) {
-			case "sharded": return Team.sharded;
-			case "blue": return Team.blue;
-			case "crux": return Team.crux;
-			case "derelict": return Team.derelict;
-			case "green": return  Team.green;
-			case "purple": return Team.purple;
-			default: return null;
+    	if (name == "purple") return Team.malis;
+    	for (Team team : Team.all) {
+    		if (team.name.equals(name)) return team;
     	}
+    	return null;
     }
 }

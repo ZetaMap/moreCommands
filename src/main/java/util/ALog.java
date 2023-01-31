@@ -60,6 +60,6 @@ public class ALog {
 			return;
 		
 		} else saveSettings();
-		Log.info("Admin logs --> file '@ALog-@.txt' load and ready to write", PVars.ALogPath, files);
+		Log.info("Admin logs --> file '@ALog-@.txt' loaded and ready", PVars.ALogPath, files);
 	}
 }
