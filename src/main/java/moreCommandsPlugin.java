@@ -260,8 +260,10 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         if (command == null) Log.err("This command doesn't exist!");
         else if (arg.length > 1) {
           if (Strings.choiseOn(arg[1])) command.set(true);
-          else if (Strings.choiseOff(arg[1])) command.set(false);
-          else {
+          else if (Strings.choiseOff(arg[1])) {
+            if (command.name == "commands")Log.err("Why do that ? It can destroy the config!");
+            else command.set(false);
+          }else {
             Log.err("Invalid value");
             return;
           }
@@ -552,6 +554,11 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
           }
           break;
 
+        case "clear":
+          Switcher.clear();
+          Switcher.saveSettings();
+          Log.info("Servers list cleared");
+          break;
         default: Log.err("Invalid arguments.");
       }
     });
@@ -1585,7 +1592,7 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
 
       Call.constructFinish(data.player.tileOn(), core, data.player.unit(), (byte) 0, team, false);
       data.player.sendMessage("[green]Core build" + (arg.length == 2 ? "for the team [accent]" + team.name : ""));
-      ALog.write("Core", "@ [@] build a @ at @,@ for the team @", data.stripedName, data.player.uuid(), core.name, data.player.tileX(), data.player.tileY(), team.name);
+      ALog.write("Core", "@ [@] build a @ at @,@ for team @", data.stripedName, data.player.uuid(), core.name, data.player.tileX(), data.player.tileY(), team.name);
     });
 
     commands.add("tp", "<filter|name|x,y> [~|to_name|x,y...]", "Teleport to a location or player", true, false, (arg, data) -> {

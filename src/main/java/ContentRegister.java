@@ -27,7 +27,7 @@ import util.Strings;
 public class ContentRegister {
   public static void initFilters() {
     // test if Nucleaus plugin is present to keep auto-translated chat
-    mindustry.mod.Mod nucleusPlugin = Vars.mods.getMod("xpdustry-nucleus") == null ? null : Vars.mods.getMod("xpdustry-nucleus").main;
+    final mindustry.mod.Mod nucleusPlugin = Vars.mods.getMod("xpdustry-nucleus") == null ? null : Vars.mods.getMod("xpdustry-nucleus").main;
 
     // filter for muted, rainbowed players, disabled chat, and tags
     // register this filter at second position after anti-spam of mindustry and
@@ -44,28 +44,27 @@ public class ContentRegister {
         else if (nucleusPlugin != null) {
           final fr.xpdustry.nucleus.core.translation.Translator translator = ((fr.xpdustry.nucleus.mindustry.NucleusPlugin) nucleusPlugin).getTranslator();
           final String stripedMessage = Strings.stripColors(m);
-
+          
           TempData.localeOrdonedPlayer.each((k, v) -> {
             String newMessage = m;
 
-            try {
-              newMessage += " [lightgray]("
-                + translator.translate(stripedMessage, data.locale, v.first().locale)
-                  .orTimeout(3l, java.util.concurrent.TimeUnit.SECONDS).join()
-                + ")";
-            } catch (Exception e) {
-              Log.debug("Failed to translate message '" + stripedMessage + "' in language " + v.first().player.locale);
-              Log.debug("Error: " + e.getLocalizedMessage());
+            if (!(k.contains("_") ? k.subSequence(0, k.indexOf("_")) : k).equals(data.locale.getLanguage())) {
+              try {
+                newMessage += " [lightgray]("
+                  + translator.translate(stripedMessage, data.locale, v.first().locale)
+                    .orTimeout(3l, java.util.concurrent.TimeUnit.SECONDS).join()
+                  + ")";
+              } catch (Exception e) {
+                Log.debug("Failed to translate message '" + stripedMessage + "' in language " + v.first().player.locale);
+                Log.debug("Error: " + e.getLocalizedMessage());
+              }              
             }
 
             for (int i = 0; i < v.size; i++) {
               Call.sendMessage(v.items[i].player.con, (PVars.tags ? data.tag : "")
-                  + "[coral][[" + data.getName() + "[coral]]:[white] "
-                  + (v.items[i].player == p ? m : newMessage), v.items[i].player == p ? m : newMessage, p);
+                + "[coral][[" + data.getName() + "[coral]]:[white] " + newMessage, newMessage, p);
             }
-
           });
-
         } else Call.sendMessage((PVars.tags ? data.tag : "") + "[coral][[" + data.getName() + "[coral]]:[white] " + m, m, p);
       }
 
@@ -84,11 +83,13 @@ public class ContentRegister {
   }
 
   public static void initEvents() {
+    /*
     // try to modify destroy event to prevent potential error from nucleus
     Events.on(EventType.BlockDestroyEvent.class, e -> {
 
     });
-
+    */
+    
     // clear VNW & RTV votes and disabled it on game over
     Events.on(EventType.GameOverEvent.class, e -> {
       PVars.canVote = false;
@@ -103,31 +104,33 @@ public class ContentRegister {
       state.set(State.playing);
     });
 
-    Events.on(EventType.PlayerConnect.class, e -> Threads.daemon("ConnectCheck_Player-" + e.player.id, () -> {
-      String name = Strings.stripGlyphs(Strings.stripColors(e.player.name)).strip();
-
-      // fix the admin bug
-      if (e.player.getInfo().admin) e.player.admin = true;
-
-      // check if the nickname is empty without colors and emojis
-      if (name.isBlank()) {
-        e.player.kick(KickReason.nameEmpty);
-        return;
-      }
-
-      // check the nickname of this player
-      if (manager.BansManager.checkName(e.player, name)) return;
-
-      // prevent to duplicate nicknames
-      if (TempData.count(d -> d.stripedName.equals(name)) != 0) e.player.kick(KickReason.nameInUse);
-
-      // check if player have a VPN
-      if (util.AntiVpn.checkIP(e.player.ip())) {
-        e.player.kick("[scarlet]VPN detected! []Please deactivate it to be able to connect to this server.");
-        ALog.write("VPN", "VPN found on player @ [@]", name, e.player.uuid());
-        return;
-      }
-    }));
+    Events.on(EventType.PlayerConnect.class, e -> 
+      Threads.daemon("ConnectCheck_Player-" + e.player.id, () -> {
+        String name = Strings.stripGlyphs(Strings.stripColors(e.player.name)).strip();
+  
+        // fix the admin bug
+        if (e.player.getInfo().admin) e.player.admin = true;
+  
+        // check if the nickname is empty without colors and emojis
+        if (name.isBlank()) {
+          e.player.kick(KickReason.nameEmpty);
+          return;
+        }
+  
+        // check the nickname of this player
+        if (manager.BansManager.checkName(e.player, name)) return;
+  
+        // prevent to duplicate nicknames
+        if (TempData.count(d -> d.stripedName.equals(name)) != 0) e.player.kick(KickReason.nameInUse);
+  
+        // check if player have a VPN
+        if (util.AntiVpn.checkIP(e.player.ip())) {
+          e.player.kick("[scarlet]VPN detected! []Please deactivate it to be able to connect to this server.");
+          ALog.write("VPN", "VPN found on player @ [@]", name, e.player.uuid());
+          return;
+        }
+      })
+    );
 
     Events.on(EventType.PlayerJoin.class, e -> {
       TempData data = TempData.put(e.player); // add player in TempData

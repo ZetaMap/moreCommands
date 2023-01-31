@@ -7,16 +7,21 @@ sourceCompatibility = 1.8
 repositories{
     mavenCentral()
     maven{ url 'https://www.jitpack.io' }
+    maven{ url 'https://maven.xpdustry.fr/releases' }
 }
 
 ext{
     //the build number that this plugin is made for
-    mindustryVersion = 'v126.2'
+    mindustry   = 'v141.3'
+    nucleus     = '2023.1.4'
+    distributor = '3.0.0-rc.2'
 }
 
 dependencies{
-    compileOnly "com.github.Anuken.Arc:arc-core:$mindustryVersion"
-    compileOnly "com.github.Anuken.Mindustry:core:$mindustryVersion"
+    compileOnly "com.github.Anuken.Arc:arc-core:$mindustry"
+    compileOnly "com.github.Anuken.Mindustry:core:$mindustry"
+    compileOnly "fr.xpdustry:nucleus-mindustry:$nucleus"
+    compileOnly "fr.xpdustry:distributor-api:$distributor"
 }
 
 jar{

@@ -69,7 +69,7 @@ public class Switcher {
       Host ping = ping();
       
       if (ping != null) {
-         arc.util.Log.info("@ @ @ @ @ @", ping.address, ping.description, ping.mapname, ping.modeName, ping.versionType, ping.ping);
+         arc.util.Log.debug("Trace info of server: @ @ @ @ @ @", ping.address, ping.description, ping.mapname, ping.modeName, ping.versionType, ping.ping);
       }
      
       if (ping == null) reponse.failed("The server not responding. (Connexion timed out!)");
@@ -94,7 +94,7 @@ public class Switcher {
       lobby.name = stripedName;
       
     } else {
-      new_.changed = list.put(stripedName, new_) == null ? false : true;
+      new_.changed = list.put(stripedName, new_) != null;
       if (new_.changed) ordonedList.remove(s -> s.name.equals(new_.name));
       ordonedList.add(new_);
     }
@@ -149,6 +149,11 @@ public class Switcher {
   
   public static int size() {
     return list.size;
+  }
+  
+  public static void clear() {
+    list.clear();
+    ordonedList.clear();
   }
   
   @SuppressWarnings("unchecked")
