@@ -14,6 +14,7 @@ public class AntiVpn {
 	public static String apiToken = "";
 	
 	private boolean foundVpn = false;
+	private boolean requestFinished = false;
 
 	private AntiVpn() {
 	}
@@ -30,6 +31,7 @@ public class AntiVpn {
 				
 				if (!content.has("security")) throw new Exception(content.getString("message"));
 				test.foundVpn = content.get("security").get("vpn").asBool();
+				test.requestFinished = true;
 				
 			}, f -> {
 				Log.warn("Anti VPN: An error occurred while checking the player's IP");
@@ -41,8 +43,10 @@ public class AntiVpn {
 					test.foundVpn = vpnServersList.contains(ip);
 				
 				} else Log.debug("The reference file was not loaded. The player's IP will therefore not be verified.");
+				test.requestFinished = true;
 			});
-
+		
+		while (!test.requestFinished) {}
 		return test.foundVpn;
 	}
 
