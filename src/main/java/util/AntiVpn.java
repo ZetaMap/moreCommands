@@ -22,31 +22,34 @@ public class AntiVpn {
 	
 	public static boolean checkIP(String ip) {
 	    if (ip == null) throw new IllegalArgumentException("ip can't be null");
+	    if (!isEnabled) return false;
 	  
 		AntiVpn test = new AntiVpn();
+
+		Http.get("https://vpnapi.io/api/" + ip + (apiToken.isBlank() ? "" : "?key=" + apiToken), s -> {
+			Jval content = Jval.read(s.getResultAsString());
+				
+			if (!content.has("security")) throw new Exception(content.getString("message"));
+			test.foundVpn = content.get("security").get("vpn").asBool();
+			test.requestFinished = true;
+				
+		}, f -> {
+		    Log.warn("Anti VPN: An error occurred while checking the player's IP");
+			Log.warn("Error: " + (f.getLocalizedMessage().contains("error: 429") ? 
+		      "Daily limit reached. Please enter an API key." : f.getLocalizedMessage()));
+				
+			if (vpnFileFound) {
+				Log.debug("The search will be done by the reference file (less reliable).");
+				test.foundVpn = vpnServersList.contains(ip);
+				
+			} else Log.debug("The reference file was not loaded. The player's IP will therefore not be verified.");
+			test.requestFinished = true;
+		});
 		
-		if (isEnabled) 
-			Http.get("https://vpnapi.io/api/" + ip + (apiToken.isBlank() ? "" : "?key=" + apiToken), s -> {
-				Jval content = Jval.read(s.getResultAsString());
-				
-				if (!content.has("security")) throw new Exception(content.getString("message"));
-				test.foundVpn = content.get("security").get("vpn").asBool();
-				test.requestFinished = true;
-				
-			}, f -> {
-				Log.warn("Anti VPN: An error occurred while checking the player's IP");
-				Log.warn("Error: " + (f.getLocalizedMessage().contains("error: 429") ? 
-				    "Daily limit reached. Please enter an API key." : f.getLocalizedMessage()));
-				
-				if (vpnFileFound) {
-					Log.debug("The search will be done by the reference file (less reliable).");
-					test.foundVpn = vpnServersList.contains(ip);
-				
-				} else Log.debug("The reference file was not loaded. The player's IP will therefore not be verified.");
-				test.requestFinished = true;
-			});
-		
-		while (!test.requestFinished) {}
+		while (!test.requestFinished) { 
+		  try { Thread.sleep(10); } 
+		  catch (InterruptedException e) { break; } 
+		}
 		return test.foundVpn;
 	}
 

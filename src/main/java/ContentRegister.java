@@ -38,7 +38,7 @@ public class ContentRegister {
       if (PVars.chat && data.isMuted) util.Players.err(p, "You're muted, you can't speak.");
       else if (!PVars.chat && !p.admin) p.sendMessage("[scarlet]Chat disabled, only admins can't speak!");
       else {
-        Log.info(Strings.format("&lk@&fb&ly@&fr<&fi&lc@&fr: &fb&lw@&fr>", data.rainbowed ? "RAINBOWED: " : data.spectate() ? "VANISHED: " : "", data.noColorTag, data.realName, m));
+        Log.info(Strings.format("&lk@&fb&ly@&fr<&fi&lc@&fr: &fb&lw@&fr>", data.rainbowed ? "RAINBOWED: " : data.spectate() ? "VANISHED: " : "", data.noColorTag, data.noColorName, m));
 
         if (data.spectate()) Call.sendChatMessage("[coral][[]:[white] " + m);
         else if (nucleusPlugin != null) {
