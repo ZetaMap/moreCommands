@@ -43,7 +43,7 @@
 * `commands <list|commandName> [on|off]` Enable/Disable a command. /!\\Requires server restart to apply changes.
 * `clear-map [y|n]` Kill all units and destroy all blocks except cores, on the current map.
 * `gamemode [name]` Change the gamemode of the current map.
-* `blacklist <list|add|remove|clear> <name|ip> [value...]` Players using a nickname or ip in the blacklist cannot connect.
+* ~~`blacklist <list|add|remove|clear> <name|ip> [value...]` Players using a nickname or ip in the blacklist cannot connect.~~ __Use [this plugin instead](https://github.com/xpdustry/Simple-Blacklist).__
 * `anti-vpn [on|off|token] [your_token]` Anti VPN service.
 * `filters <help|on|off>` Enabled/disabled filters.
 * `effect <list|on|off> [id|name]` Enabled/disabled a particles effect.

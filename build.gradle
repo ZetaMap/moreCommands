@@ -12,7 +12,7 @@ repositories{
 
 ext{
     //the build number that this plugin is made for
-    mindustry   = 'v141.3'
+    mindustry   = 'v146'
     nucleus     = '2023.1.4'
     distributor = '3.0.0-rc.2'
 }

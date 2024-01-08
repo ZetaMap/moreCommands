@@ -44,7 +44,6 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
 
     // init other classes and load settings
     Effects.init();
-    BansManager.load();
     AntiVpn.init(true);
     ArgsFilter.load();
     Switcher.load();
@@ -341,10 +340,6 @@ public class moreCommandsPlugin extends mindustry.mod.Plugin {
         } else Log.info("The gamemode is curently '@'", state.rules.mode().name());
       } else Log.err("Not playing. Host first.");
     });
-
-    commands.add("blacklist", "<list|add|remove|clear> <name|ip> [value...]",
-      "Players using a nickname or ip in the blacklist cannot connect to the server (spaces on the sides, colors, and emojis are cut off when checking out)",
-        BansManager::blacklistCommand);
 
     commands.add("anti-vpn", "[on|off|token] [your_token]", "Anti VPN service. (By default daily limit is 100 but with free account is 1000 and more with plans)", arg -> {
       if (arg.length == 0) {
